@@ -37,23 +37,65 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
+# FUNCIÓN PARA ADAPTAR COLUMNAS DE EXCEL
+# ==========================================
+def normalizar_y_blindar_dataframe(df):
+    if df.empty:
+        return df
+        
+    # 1. Limpiar saltos de línea internos (\n) y espacios raros en los títulos de las columnas
+    df.columns = df.columns.str.replace('\n', ' ').str.replace(r'\s+', ' ', regex=True).str.strip()
+    
+    # 2. Diccionario de mapeo inteligente (Traduce tus columnas reales al estándar del código)
+    mapeo_columnas = {
+        'Fecha': 'fecha',
+        'Proceso Auditado': 'proceso_auditado',
+        'Auditor Responsable': 'auditor_responsable',
+        'Requisito ISO 9001:2015': 'requisito_iso',
+        'Requisito específico ISO 9001:2015': 'requisito_especifico',
+        'Requisito Interno / Legal': 'requisito_interno_legal',
+        'Tipo de Hallazgo': 'tipo_hallazgo',
+        'Tipo de hallazgo': 'tipo_hallazgo',
+        'Cumplimiento del requisito': 'cumplimiento',
+        'Cumplimiento': 'cumplimiento',
+        'Evidencia objetiva de NC': 'evidencia_objetiva',
+        'Evidencia objetiva': 'evidencia_objetiva',
+        'Observaciones / comentarios adicionales': 'observaciones',
+        'Observaciones': 'observaciones',
+        'Tipo de plan': 'tipo_plan',
+        'Código': 'codigo',
+        'Estatus del plan': 'estatus_plan',
+        'Estatus de la eficacia': 'estatus_la_eficacia',
+        'id': 'id'
+    }
+    
+    df = df.rename(columns=mapeo_columnas)
+    
+    # 3. Auto-generación del ID correlativo si no viene en el Excel original
+    if 'id' not in df.columns or df['id'].isnull().all():
+        df.insert(0, 'id', range(1, len(df) + 1))
+    else:
+        df['id'] = pd.to_numeric(df['id'], errors='coerce').fillna(range(1, len(df) + 1)).astype(int)
+        
+    return df
+
+# ==========================================
 # CONEXIÓN DIRECTA A GOOGLE SHEETS
 # ==========================================
-# Nota: La URL del spreadsheet se configura en los Secrets de Streamlit
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
     
-    # Lectura de datos (con ttl=0 para forzar la actualización en tiempo real en cada CRUD)
-    df_matriz = conn.read(worksheet="Matriz", ttl=0)
-    df_sac = conn.read(worksheet="SAC_OM", ttl=0)
+    # Lectura cruda desde la nube
+    df_matriz_raw = conn.read(worksheet="Matriz", ttl=0)
+    df_sac_raw = conn.read(worksheet="SAC_OM", ttl=0)
     
-    # Convertir columnas a tipos manejables y limpiar nulos
-    df_matriz['id'] = df_matriz['id'].astype(int)
-    if not df_sac.empty and 'id' in df_sac.columns:
-        df_sac['id'] = df_sac['id'].astype(int)
-        
+    # Procesamiento y normalización automática
+    df_matriz = normalizar_y_blindar_dataframe(df_matriz_raw)
+    df_sac = normalizar_y_blindar_dataframe(df_sac_raw)
+    
 except Exception as e:
-    st.error("Error de conexión con Google Sheets. Verifique la configuración de Secrets.")
+    st.error(f"⚠️ Error de infraestructura: {e}")
+    st.info("Asegúrese de que las pestañas del Google Sheet se llamen exactamente 'Matriz' y 'SAC_OM'.")
     st.stop()
 
 # ==========================================
@@ -76,15 +118,13 @@ if opcion == "📊 Dashboard de Dirección":
     st.title("📊 Dashboard Ejecutivo de Calidad (Live)")
     st.markdown("Resultados calculados dinámicamente desde el Google Sheet institucional.")
     
-    # Filtrar registros que ya han sido evaluados en la auditoría
     df_evaluados = df_matriz[df_matriz['tipo_hallazgo'].notna() & (df_matriz['tipo_hallazgo'] != '')]
     
     if df_evaluados.empty:
         st.info("💡 La matriz en la nube no tiene filas evaluadas aún. Proceda al módulo 'Matriz de Hallazgos' para calificar requisitos.")
     else:
-        # KPIs de Control
         total_evaluados = len(df_evaluados)
-        total_conformes = len(df_evaluados[df_evaluados['cumplimiento'] == 'Conforme'])
+        total_conformes = len(df_evaluados[df_evaluados['cumplimiento'].str.strip().str.lower() == 'conforme'])
         grado_global = (total_conformes / total_evaluados) * 100 if total_evaluados > 0 else 0
         
         k1, k2, k3 = st.columns(3)
@@ -93,7 +133,7 @@ if opcion == "📊 Dashboard de Dirección":
         with k2:
             st.markdown(f"<div class='metric-card'><h3>Requisitos Evaluados</h3><h2>{total_evaluados}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
         with k3:
-            abiertos = len(df_sac[df_sac['estatus_plan']=='Abierto']) if not df_sac.empty else 0
+            abiertos = len(df_sac[df_sac['estatus_plan'].str.strip().str.lower() == 'abierto']) if not df_sac.empty else 0
             st.markdown(f"<div class='metric-card'><h3>Planes SAC/OM Abiertos</h3><h2>{abiertos}</h2><p>Pendientes por revisión de eficacia</p></div>", unsafe_allow_html=True)
             
         st.write("---")
@@ -101,7 +141,7 @@ if opcion == "📊 Dashboard de Dirección":
         # --- GRÁFICO 1: CONFORMIDAD POR PROCESO ---
         st.subheader("1. Grado de Conformidad por Proceso Auditado")
         proc_stats = df_evaluados.groupby('proceso_auditado').apply(
-            lambda x: (sum(x['cumplimiento'] == 'Conforme') / len(x)) * 100
+            lambda x: (sum(x['cumplimiento'].str.strip().str.lower() == 'conforme') / len(x)) * 100
         ).reset_index(name='Conformidad')
         
         fig_proc = px.bar(proc_stats, x='proceso_auditado', y='Conformidad', color_discrete_sequence=['#1E3A8A'], text_auto='.1f')
@@ -114,7 +154,7 @@ if opcion == "📊 Dashboard de Dirección":
         with col_izq:
             st.subheader("2. Madurez del SGC por Cláusula ISO 9001")
             req_stats = df_evaluados.groupby('requisito_iso').apply(
-                lambda x: (sum(x['cumplimiento'] == 'Conforme') / len(x)) * 100
+                lambda x: (sum(x['cumplimiento'].str.strip().str.lower() == 'conforme') / len(x)) * 100
             ).reset_index(name='Conformidad')
             fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=['#3B82F6'], text_auto='.1f')
             fig_req.update_layout(yaxis_range=[0, 110], plot_bgcolor='rgba(0,0,0,0)')
@@ -127,10 +167,8 @@ if opcion == "📊 Dashboard de Dirección":
                     df_sac, x='tipo_plan', color='estatus_plan', barmode='group',
                     color_discrete_map={'Cerrado': '#10B981', 'Abierto': '#1E3A8A', 'Pendiente verificar': '#F59E0B'}
                 )
-                fig_sac.update_layout(plot_bgcolor='rgba(0,0,0,0)', ylabel={'title': 'Cantidad de Acciones'})
+                fig_sac.update_layout(plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig_sac, use_container_width=True)
-            else:
-                st.info("Sin registros en la tabla SAC_OM para graficar.")
 
 # ==========================================
 # MÓDULO 2: MATRIZ DE HALLAZGOS (CRUD)
@@ -144,7 +182,6 @@ elif opcion == "📝 Matriz de Hallazgos":
         procesos_disponibles = df_matriz['proceso_auditado'].dropna().unique().tolist()
         proc_sel = st.selectbox("Seleccione el proceso en evaluación:", procesos_disponibles)
         
-        # Filtrar filas del proceso seleccionado
         df_proc = df_matriz[df_matriz['proceso_auditado'] == proc_sel]
         st.dataframe(df_proc[['id', 'requisito_iso', 'requisito_especifico', 'tipo_hallazgo', 'cumplimiento', 'observaciones']], use_container_width=True, hide_index=True)
         
@@ -157,22 +194,20 @@ elif opcion == "📝 Matriz de Hallazgos":
             with c1:
                 st.info(f"**Cláusula ISO:** {fila_editar['requisito_iso']} | **Detalle:** {fila_editar['requisito_especifico']}")
                 tipo_h = st.selectbox("Tipo de Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"],
-                                     index=0 if fila_editar['tipo_hallazgo']=='Conforme' else 1 if fila_editar['tipo_hallazgo']=='No Conforme' else 2)
+                                     index=0 if str(fila_editar['tipo_hallazgo']).strip()=='Conforme' else 1 if str(fila_editar['tipo_hallazgo']).strip()=='No Conforme' else 2)
             with c2:
                 cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"],
-                                   index=0 if fila_editar['cumplimiento']=='Conforme' else 1)
+                                   index=0 if str(fila_editar['cumplimiento']).strip()=='Conforme' else 1)
             
-            evid = st.text_area("Evidencia Objetiva hallada:", value=str(fila_editar['evidencia_objetiva'] or ''))
-            obs = st.text_area("Observaciones técnicas:", value=str(fila_editar['observaciones'] or ''))
+            evid = st.text_area("Evidencia Objetiva hallada:", value=str(fila_editar['evidencia_objetiva'] if pd.notna(fila_editar['evidencia_objetiva']) else ''))
+            obs = st.text_area("Observaciones técnicas:", value=str(fila_editar['observaciones'] if pd.notna(fila_editar['observaciones']) else ''))
             
             if st.form_submit_button("Sincronizar con Google Sheets"):
-                # Modificar el dataframe en memoria
                 df_matriz.at[idx_row, 'tipo_hallazgo'] = tipo_h
                 df_matriz.at[idx_row, 'cumplimiento'] = cump
                 df_matriz.at[idx_row, 'evidencia_objetiva'] = evid
                 df_matriz.at[idx_row, 'observaciones'] = obs
                 
-                # Empujar actualización completa
                 conn.update(worksheet="Matriz", data=df_matriz)
                 st.success("¡Datos sincronizados exitosamente en la nube!")
                 st.rerun()
@@ -226,10 +261,10 @@ elif opcion == "⚙️ Seguimiento SAC / OM":
             
             with st.form("form_edit_sac"):
                 st.write(f"**Código de Acción:** {fila_sac['codigo']} | **Proceso:** {fila_sac['proceso_auditado']}")
-                e_plan = st.selectbox("Estatus del Plan:", ["Abierto", "Cerrado"], index=0 if fila_sac['estatus_plan']=='Abierto' else 1)
+                e_plan = st.selectbox("Estatus del Plan:", ["Abierto", "Cerrado"], index=0 if str(fila_sac['estatus_plan']).strip()=='Abierto' else 1)
                 e_efic = st.selectbox("Estatus de la Eficacia:", ["Pendiente verificar", "Eficaz", "No eficaz"], 
-                                      index=0 if fila_sac['estatus_la_eficacia']=='Pendiente verificar' else 1 if fila_sac['estatus_la_eficacia']=='Eficaz' else 2)
-                e_obs = st.text_area("Comentarios de Verificación:", value=str(fila_sac['observaciones'] or ''))
+                                      index=0 if str(fila_sac['estatus_la_eficacia']).strip()=='Pendiente verificar' else 1 if str(fila_sac['estatus_la_eficacia']).strip()=='Eficaz' else 2)
+                e_obs = st.text_area("Comentarios de Verificación:", value=str(fila_sac['observaciones'] if pd.notna(fila_sac['observaciones']) else ''))
                 
                 if st.form_submit_button("Actualizar Estatus en la Nube"):
                     df_sac.at[idx_sac, 'estatus_plan'] = e_plan
