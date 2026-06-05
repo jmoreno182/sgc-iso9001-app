@@ -11,7 +11,7 @@ st.set_page_config(page_title="Dashboard Auditoría SGC", layout="wide")
 # NUEVA FUNCIÓN DE CONEXIÓN DIRECTA (REEMPLAZA A GSheetsConnection)
 # ==============================================================================
 # Coloca aquí el enlace "Compartir" de tu Google Sheet
-URL_GOOGLE_SHEET = "TU_URL_DE_GOOGLE_SHEETS_AQUI"
+URL_GOOGLE_SHEET = "https://docs.google.com/spreadsheets/d/1dBkUQESYGL676tFtXWXPu_iBnFy3-w96E9n9FQC-1kA/edit?gid=0#gid=0"
 
 def cargar_datos_sgc(url_compartir):
     """Convierte la URL de compartir en un enlace de descarga CSV directo para Pandas"""
