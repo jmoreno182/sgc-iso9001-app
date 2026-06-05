@@ -1,9 +1,43 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from st_gsheets_connection import GSheetsConnection
 from datetime import datetime
 import io
+
+# Configuración de la página del SGC
+st.set_page_config(page_title="Dashboard Auditoría SGC", layout="wide")
+
+# ==============================================================================
+# NUEVA FUNCIÓN DE CONEXIÓN DIRECTA (REEMPLAZA A GSheetsConnection)
+# ==============================================================================
+# Coloca aquí el enlace "Compartir" de tu Google Sheet
+URL_GOOGLE_SHEET = "TU_URL_DE_GOOGLE_SHEETS_AQUI"
+
+def cargar_datos_sgc(url_compartir):
+    """Convierte la URL de compartir en un enlace de descarga CSV directo para Pandas"""
+    try:
+        if "/edit" in url_compartir:
+            base_url = url_compartir.split("/edit")[0]
+            url_csv = f"{base_url}/export?format=csv"
+            # Si tu enlace apunta a una pestaña específica (ej. Matriz de hallazgos), conserva el gid
+            if "gid=" in url_compartir:
+                gid = url_compartir.split("gid=")[1].split("&")[0]
+                url_csv += f"&gid={gid}"
+        else:
+            url_csv = url_compartir
+        
+        # Retorna el DataFrame procesado por Pandas directamente de la nube
+        return pd.read_csv(url_csv)
+    except Exception as e:
+        st.error(f"Error al conectar con Google Sheets: {e}")
+        return pd.DataFrame()
+
+# Llamada para construir tu DataFrame principal
+df = cargar_datos_sgc(URL_GOOGLE_SHEET)
+# ==============================================================================
+
+# ... A PARTIR DE AQUÍ CONSERVA TODO TU CÓDIGO ORIGINAL ...
+# (Solo asegúrate de que tus funciones usen el 'df' generado arriba)
 
 # ==========================================
 # CONFIGURACIÓN DE LA PÁGINA Y ESTILO AZUL
