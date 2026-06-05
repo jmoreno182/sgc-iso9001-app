@@ -37,16 +37,36 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# FUNCIÓN PARA ADAPTAR COLUMNAS DE EXCEL
+# FUNCIÓN ULTRA-ROBUSTA DE DETECCIÓN DE DATOS
 # ==========================================
-def normalizar_y_blindar_dataframe(df):
+def normalizar_y_blindar_dataframe(df, tipo_tabla="Matriz"):
     if df.empty:
         return df
         
-    # 1. Limpiar saltos de línea internos (\n) y espacios raros en los títulos de las columnas
+    # 1. Detectar si la cabecera real está desplazada por filas vacías arriba
+    cabecera_encontrada = False
+    for idx, row in df.iterrows():
+        valores_fila = [str(v).strip().lower() for v in row.values if pd.notna(v)]
+        # Buscamos palabras clave institucionales para identificar la fila de títulos
+        if any('fecha' in v or 'proceso' in v or 'auditor' in v for v in valores_fila):
+            nuevas_columnas = []
+            for col_val in row.values:
+                if pd.isna(col_val) or str(col_val).strip() == '':
+                    nuevas_columnas.append('columna_vacia_desplazada')
+                else:
+                    nuevas_columnas.append(str(col_val).strip())
+            df.columns = nuevas_columnas
+            df = df.iloc[idx+1:].reset_index(drop=True)
+            cabecera_encontrada = True
+            break
+            
+    if not cabecera_encontrada:
+        df.columns = [str(c).strip() for c in df.columns]
+        
+    # 2. Limpiar saltos de línea (\n) y múltiples espacios en los nombres de columnas
     df.columns = df.columns.str.replace('\n', ' ').str.replace(r'\s+', ' ', regex=True).str.strip()
     
-    # 2. Diccionario de mapeo inteligente (Traduce tus columnas reales al estándar del código)
+    # 3. Diccionario de mapeo inteligente (Soporta nombres originales de tu Excel)
     mapeo_columnas = {
         'Fecha': 'fecha',
         'Proceso Auditado': 'proceso_auditado',
@@ -71,13 +91,30 @@ def normalizar_y_blindar_dataframe(df):
     
     df = df.rename(columns=mapeo_columnas)
     
-    # 3. Auto-generación del ID correlativo si no viene en el Excel original
-    if 'id' not in df.columns or df['id'].isnull().all():
-        df.insert(0, 'id', range(1, len(df) + 1))
+    # 4. Forzar la existencia de columnas para evitar fallos de lectura (KeyError)
+    columnas_requeridas = {
+        "Matriz": ['id', 'fecha', 'proceso_auditado', 'auditor_responsable', 'requisito_iso', 
+                   'requisito_especifico', 'requisito_interno_legal', 'tipo_hallazgo', 
+                   'cumplimiento', 'evidencia_objetiva', 'observaciones'],
+        "SAC_OM": ['id', 'fecha', 'proceso_auditado', 'auditor_responsable', 'requisito_iso', 
+                   'tipo_plan', 'codigo', 'estatus_plan', 'estatus_la_eficacia', 'observaciones']
+    }
+    
+    for col in columnas_requeridas[tipo_tabla]:
+        if col not in df.columns:
+            df[col] = ""
+            
+    # 5. Descartar filas basurilla o completamente vacías del final de la hoja
+    df = df.dropna(subset=['proceso_auditado', 'requisito_iso'], how='all')
+    df = df[df['proceso_auditado'].astype(str).str.strip() != '']
+    
+    # 6. Auto-generar identificadores únicos correlativos
+    if 'id' not in df.columns or df['id'].astype(str).str.strip().eq('').all() or df['id'].isnull().all():
+        df['id'] = range(1, len(df) + 1)
     else:
         df['id'] = pd.to_numeric(df['id'], errors='coerce').fillna(range(1, len(df) + 1)).astype(int)
         
-    return df
+    return df.reset_index(drop=True)
 
 # ==========================================
 # CONEXIÓN DIRECTA A GOOGLE SHEETS
@@ -85,17 +122,15 @@ def normalizar_y_blindar_dataframe(df):
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
     
-    # Lectura cruda desde la nube
     df_matriz_raw = conn.read(worksheet="Matriz", ttl=0)
     df_sac_raw = conn.read(worksheet="SAC_OM", ttl=0)
     
-    # Procesamiento y normalización automática
-    df_matriz = normalizar_y_blindar_dataframe(df_matriz_raw)
-    df_sac = normalizar_y_blindar_dataframe(df_sac_raw)
+    df_matriz = normalizar_y_blindar_dataframe(df_matriz_raw, "Matriz")
+    df_sac = normalizar_y_blindar_dataframe(df_sac_raw, "SAC_OM")
     
 except Exception as e:
     st.error(f"⚠️ Error de infraestructura: {e}")
-    st.info("Asegúrese de que las pestañas del Google Sheet se llamen exactamente 'Matriz' y 'SAC_OM'.")
+    st.info("Asegúrese de que los nombres de las pestañas en Google Sheets sean exactamente 'Matriz' y 'SAC_OM'.")
     st.stop()
 
 # ==========================================
@@ -114,17 +149,20 @@ opcion = st.sidebar.radio(
 # ==========================================
 # MÓDULO 1: DASHBOARD DE DIRECCIÓN
 # ==========================================
-if opcion == "📊 Dashboard de Dirección":
+if opcion == "📊 Dashboard de Direction":
     st.title("📊 Dashboard Ejecutivo de Calidad (Live)")
     st.markdown("Resultados calculados dinámicamente desde el Google Sheet institucional.")
     
-    df_evaluados = df_matriz[df_matriz['tipo_hallazgo'].notna() & (df_matriz['tipo_hallazgo'] != '')]
+    df_matriz['tipo_hallazgo_clean'] = df_matriz['tipo_hallazgo'].astype(str).str.strip()
+    df_evaluados = df_matriz[(df_matriz['tipo_hallazgo_clean'] != '') & (df_matriz['tipo_hallazgo_clean'].str.lower() != 'nan')]
     
     if df_evaluados.empty:
-        st.info("💡 La matriz en la nube no tiene filas evaluadas aún. Proceda al módulo 'Matriz de Hallazgos' para calificar requisitos.")
+        st.info("💡 La matriz en la nube no contiene filas evaluadas todavía. Diríjase a la sección 'Matriz de Hallazgos' para calificar requisitos.")
     else:
+        df_evaluados['is_conforme'] = df_evaluados['cumplimiento'].astype(str).str.strip().str.lower() == 'conforme'
+        
         total_evaluados = len(df_evaluados)
-        total_conformes = len(df_evaluados[df_evaluados['cumplimiento'].str.strip().str.lower() == 'conforme'])
+        total_conformes = df_evaluados['is_conforme'].sum()
         grado_global = (total_conformes / total_evaluados) * 100 if total_evaluados > 0 else 0
         
         k1, k2, k3 = st.columns(3)
@@ -133,16 +171,15 @@ if opcion == "📊 Dashboard de Dirección":
         with k2:
             st.markdown(f"<div class='metric-card'><h3>Requisitos Evaluados</h3><h2>{total_evaluados}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
         with k3:
-            abiertos = len(df_sac[df_sac['estatus_plan'].str.strip().str.lower() == 'abierto']) if not df_sac.empty else 0
-            st.markdown(f"<div class='metric-card'><h3>Planes SAC/OM Abiertos</h3><h2>{abiertos}</h2><p>Pendientes por revisión de eficacia</p></div>", unsafe_allow_html=True)
+            abiertos = len(df_sac[df_sac['estatus_plan'].astype(str).str.strip().str.lower() == 'abierto']) if not df_sac.empty else 0
+            st.markdown(f"<div class='metric-card'><h3>Planes SAC/OM Abiertos</h3><h2>{abiertos}</h2><p>Pendientes por verificación</p></div>", unsafe_allow_html=True)
             
         st.write("---")
         
         # --- GRÁFICO 1: CONFORMIDAD POR PROCESO ---
         st.subheader("1. Grado de Conformidad por Proceso Auditado")
-        proc_stats = df_evaluados.groupby('proceso_auditado').apply(
-            lambda x: (sum(x['cumplimiento'].str.strip().str.lower() == 'conforme') / len(x)) * 100
-        ).reset_index(name='Conformidad')
+        proc_stats = df_evaluados.groupby('proceso_auditado')['is_conforme'].mean().reset_index()
+        proc_stats['Conformidad'] = proc_stats['is_conforme'] * 100
         
         fig_proc = px.bar(proc_stats, x='proceso_auditado', y='Conformidad', color_discrete_sequence=['#1E3A8A'], text_auto='.1f')
         fig_proc.add_hline(y=100, line_dash="dash", line_color="#EF4444", annotation_text="Meta SGC")
@@ -153,16 +190,15 @@ if opcion == "📊 Dashboard de Dirección":
         col_izq, col_der = st.columns(2)
         with col_izq:
             st.subheader("2. Madurez del SGC por Cláusula ISO 9001")
-            req_stats = df_evaluados.groupby('requisito_iso').apply(
-                lambda x: (sum(x['cumplimiento'].str.strip().str.lower() == 'conforme') / len(x)) * 100
-            ).reset_index(name='Conformidad')
+            req_stats = df_evaluados.groupby('requisito_iso')['is_conforme'].mean().reset_index()
+            req_stats['Conformidad'] = req_stats['is_conforme'] * 100
             fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=['#3B82F6'], text_auto='.1f')
             fig_req.update_layout(yaxis_range=[0, 110], plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_req, use_container_width=True)
             
         with col_der:
             st.subheader("3. Distribución de Estatus de Acciones (SAC / OM)")
-            if not df_sac.empty and 'tipo_plan' in df_sac.columns:
+            if not df_sac.empty:
                 fig_sac = px.histogram(
                     df_sac, x='tipo_plan', color='estatus_plan', barmode='group',
                     color_discrete_map={'Cerrado': '#10B981', 'Abierto': '#1E3A8A', 'Pendiente verificar': '#F59E0B'}
@@ -240,7 +276,7 @@ elif opcion == "📝 Matriz de Hallazgos":
                 }
                 df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
                 conn.update(worksheet="Matriz", data=df_matriz)
-                st.success("Fila añadida al Google Sheet.")
+                st.success("Fila añadida al Google Sheet de forma exitosa.")
                 st.rerun()
 
 # ==========================================
@@ -249,74 +285,4 @@ elif opcion == "📝 Matriz de Hallazgos":
 elif opcion == "⚙️ Seguimiento SAC / OM":
     st.title("⚙️ Control de Acciones Correctivas y OM")
     
-    tab_s1, tab_s2 = st.tabs(["📋 Listado y Cierre Eficacia", "➕ Registrar Apertura"])
-    
-    with tab_s1:
-        if not df_sac.empty:
-            st.dataframe(df_sac, use_container_width=True, hide_index=True)
-            
-            id_sac = st.selectbox("Seleccione ID del Plan para actualizar:", df_sac['id'].tolist())
-            idx_sac = df_sac[df_sac['id'] == id_sac].index[0]
-            fila_sac = df_sac.loc[idx_sac]
-            
-            with st.form("form_edit_sac"):
-                st.write(f"**Código de Acción:** {fila_sac['codigo']} | **Proceso:** {fila_sac['proceso_auditado']}")
-                e_plan = st.selectbox("Estatus del Plan:", ["Abierto", "Cerrado"], index=0 if str(fila_sac['estatus_plan']).strip()=='Abierto' else 1)
-                e_efic = st.selectbox("Estatus de la Eficacia:", ["Pendiente verificar", "Eficaz", "No eficaz"], 
-                                      index=0 if str(fila_sac['estatus_la_eficacia']).strip()=='Pendiente verificar' else 1 if str(fila_sac['estatus_la_eficacia']).strip()=='Eficaz' else 2)
-                e_obs = st.text_area("Comentarios de Verificación:", value=str(fila_sac['observaciones'] if pd.notna(fila_sac['observaciones']) else ''))
-                
-                if st.form_submit_button("Actualizar Estatus en la Nube"):
-                    df_sac.at[idx_sac, 'estatus_plan'] = e_plan
-                    df_sac.at[idx_sac, 'estatus_la_eficacia'] = e_efic
-                    df_sac.at[idx_sac, 'observaciones'] = e_obs
-                    conn.update(worksheet="SAC_OM", data=df_sac)
-                    st.success("Plan de acción actualizado en Google Sheets.")
-                    st.rerun()
-        else:
-            st.info("No hay planes de acción registrados en este momento.")
-            
-    with tab_s2:
-        st.subheader("Dar de alta un nuevo Plan de Acción")
-        with st.form("new_sac"):
-            cx1, cx2 = st.columns(2)
-            with cx1:
-                s_fecha = st.date_input("Fecha Registro:", datetime.now())
-                s_proc = st.text_input("Proceso Responsable:").upper()
-                s_auditor = st.text_input("Auditor Emisor:")
-            with cx2:
-                s_req = st.text_input("Requisito / Cláusula:")
-                s_tipo = st.selectbox("Tipo Plan:", ["Acción Correctiva", "Oportunidad de mejora"])
-                s_cod = st.text_input("Código único SAC/OM:")
-            s_obs = st.text_area("Detalles / Plan Propuesto:")
-            
-            if st.form_submit_button("Registrar Apertura"):
-                nuevo_id_sac = int(df_sac['id'].max() + 1) if not df_sac.empty else 1
-                nueva_sac = {
-                    'id': nuevo_id_sac, 'fecha': s_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': s_proc,
-                    'auditor_responsable': s_auditor, 'requisito_iso': s_req, 'tipo_plan': s_tipo,
-                    'codigo': s_cod, 'estatus_plan': 'Abierto', 'estatus_la_eficacia': 'Pendiente verificar', 'observaciones': s_obs
-                }
-                df_sac = pd.concat([df_sac, pd.DataFrame([nueva_sac])], ignore_index=True)
-                conn.update(worksheet="SAC_OM", data=df_sac)
-                st.success("Plan aperturado en la nube de forma exitosa.")
-                st.rerun()
-
-# ==========================================
-# MÓDULO 4: EXPORTAR RESPALDO LOCAL
-# ==========================================
-elif opcion == "💾 Exportar Respaldo":
-    st.title("💾 Descarga de Seguridad")
-    st.markdown("Aunque tus datos están en Google Sheets, siempre es buena práctica descargar un respaldo local en Excel.")
-    
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df_matriz.to_excel(writer, sheet_name='Matriz de Hallazgos', index=False)
-        df_sac.to_excel(writer, sheet_name='Seguimiento SAC OM', index=False)
-        
-    st.download_button(
-        label="📥 Descargar Base de Datos Completa (.XLSX)",
-        data=buffer.getvalue(),
-        file_name=f"Respaldo_SGC_ISO9001_{datetime.now().strftime('%Y%m%d')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    tab_s
