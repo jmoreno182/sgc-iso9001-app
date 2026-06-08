@@ -50,6 +50,27 @@ st.markdown("""
 # CONEXIÓN DIRECTA A GOOGLE SHEETS
 # ==========================================
 # Nota: La URL del spreadsheet se configura en los Secrets de Streamlit
+
+if "GOOGLE_SERVICE_ACCOUNT_INFO" not in st.secrets:
+    st.warning("⚠️ **Aplicación en modo configuración**")
+    st.info("""
+    ### Pasos para activar la aplicación:
+
+    1. **Ir a Streamlit Cloud Dashboard**
+       - https://share.streamlit.io/
+       - Selecciona tu app "sgc-iso9001-app"
+
+    2. **Configurar Secrets**
+       - Click en "..." → "Edit secrets"
+       - Agrega GOOGLE_SERVICE_ACCOUNT_INFO con tus credenciales
+
+    3. **Habilitar Google Sheets API**
+       - https://console.cloud.google.com/apis/api/sheets.googleapis.com/overview
+
+    4. **Recargar página** (Ctrl+F5)
+    """)
+    st.stop()
+
 st.write("📡 Inicializando conexión...")
 try:
     df_matriz, df_sac = load_gsheets_data(max_retries=3)
