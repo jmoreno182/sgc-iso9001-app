@@ -221,10 +221,18 @@ if opcion == "📊 Dashboard de Dirección":
         )
 
     with filter_cols[2]:
+        # Parse fechas safely
+        try:
+            df_fechas = pd.to_datetime(df_matriz['fecha'], errors='coerce').dropna()
+            fecha_min = df_fechas.min().date() if not df_fechas.empty else datetime.now().date()
+            fecha_max = df_fechas.max().date() if not df_fechas.empty else datetime.now().date()
+        except:
+            fecha_min = datetime.now().date()
+            fecha_max = datetime.now().date()
+
         fecha_range = st.date_input(
             "Rango de Fecha",
-            value=(df_matriz['fecha'].min() if not df_matriz.empty else datetime.now(),
-                   df_matriz['fecha'].max() if not df_matriz.empty else datetime.now()),
+            value=(fecha_min, fecha_max),
             help="Selecciona rango de auditoría"
         )
 
