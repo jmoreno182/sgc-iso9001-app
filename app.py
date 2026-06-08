@@ -1,8 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
 import io
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
 
 from utils import (
     ValidationError,
@@ -14,6 +20,8 @@ from utils import (
     compute_process_stats,
     compute_requirement_stats,
     compute_auditor_stats,
+    compute_conformidad_trend,
+    compute_auditor_comparison,
 )
 
 # ==========================================

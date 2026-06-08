@@ -173,6 +173,51 @@ def compute_auditor_stats(df: pd.DataFrame) -> pd.DataFrame:
     ).sort_values('auditor_responsable')
 
 
+@st.cache_data
+def compute_conformidad_trend(df: pd.DataFrame) -> dict:
+    """Calculate conformity trend (current vs previous period)."""
+    if df.empty:
+        return {'current': 0, 'previous': 0, 'trend': '→'}
+
+    try:
+        df['fecha'] = pd.to_datetime(df['fecha'])
+        df_eval = df[df['tipo_hallazgo'].notna() & (df['tipo_hallazgo'] != '')]
+
+        if df_eval.empty:
+            return {'current': 0, 'previous': 0, 'trend': '→'}
+
+        # Split by median date
+        median_date = df_eval['fecha'].median()
+        current = df_eval[df_eval['fecha'] >= median_date]
+        previous = df_eval[df_eval['fecha'] < median_date]
+
+        current_pct = (len(current[current['cumplimiento'] == 'Conforme']) / len(current) * 100) if len(current) > 0 else 0
+        previous_pct = (len(previous[previous['cumplimiento'] == 'Conforme']) / len(previous) * 100) if len(previous) > 0 else 0
+
+        trend = '↑' if current_pct > previous_pct else '↓' if current_pct < previous_pct else '→'
+
+        return {'current': round(current_pct, 1), 'previous': round(previous_pct, 1), 'trend': trend}
+    except:
+        return {'current': 0, 'previous': 0, 'trend': '→'}
+
+
+@st.cache_data
+def compute_auditor_comparison(df: pd.DataFrame) -> pd.DataFrame:
+    """Compare productivity and conformity by auditor."""
+    df_clean = df[df['auditor_responsable'].notna() & (df['auditor_responsable'] != '') &
+                   df['tipo_hallazgo'].notna() & (df['tipo_hallazgo'] != '')]
+
+    if df_clean.empty:
+        return pd.DataFrame()
+
+    return df_clean.groupby('auditor_responsable').agg({
+        'id': 'count',
+        'cumplimiento': lambda x: (x == 'Conforme').sum()
+    }).rename(columns={'id': 'Requisitos Evaluados', 'cumplimiento': 'Conformes'}).reset_index().rename(
+        columns={'auditor_responsable': 'Auditor'}
+    ).assign(Conformidad=lambda x: (x['Conformes'] / x['Requisitos Evaluados'] * 100).round(1))
+
+
 def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
     """Update worksheet in Google Sheets with new data."""
     import gspread
