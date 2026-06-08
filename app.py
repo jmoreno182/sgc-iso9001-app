@@ -27,22 +27,112 @@ st.set_page_config(
 
 st.markdown("""
     <style>
-        .main { background-color: #F8FAFC; }
-        .stButton>button {
-            background-color: #1E3A8A;
-            color: white;
-            border-radius: 6px;
-            border: none;
-            padding: 0.5rem 1rem;
+        :root {
+            --primary: #1F2937;
+            --accent: #3B82F6;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --light-bg: #F9FAFB;
+            --border: #E5E7EB;
         }
-        .stButton>button:hover { background-color: #1D4ED8; color: white; }
-        h1, h2, h3 { color: #1E3A8A; font-family: 'Segoe UI', sans-serif; }
-        .metric-card {
-            background-color: white;
-            padding: 1.5rem;
+
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+        }
+
+        .main {
+            background-color: #FFFFFF;
+            padding: 0;
+        }
+
+        h1, h2, h3 {
+            color: #1F2937;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.875rem; margin-top: 1.5rem; margin-bottom: 1rem; }
+        h3 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+
+        .stButton>button {
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            color: white;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 5px solid #1E3A8A;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+        }
+
+        .stButton>button:hover {
+            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .stButton>button:active {
+            transform: translateY(0);
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #FFFFFF 0%, #F3F4F6 100%);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card:hover {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+        }
+
+        .metric-card h3 {
+            color: #6B7280;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-card h2 {
+            color: #1F2937;
+            font-size: 2.5rem;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .metric-card p {
+            color: #9CA3AF;
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        hr { border-color: #E5E7EB; margin: 2rem 0; }
+
+        [data-testid="stExpander"] {
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+        }
+
+        .stDataFrame {
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .stInfo, .stWarning, .stError {
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .stMarkdown {
+            color: #374151;
+            line-height: 1.6;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -129,7 +219,7 @@ if opcion == "📊 Dashboard de Dirección":
         # --- FILA PARA GRÁFICOS 2 Y 3 ---
         col_izq, col_der = st.columns(2)
         with col_izq:
-            st.subheader("2. Madurez del SGC por Cláusula ISO 9001")
+            st.subheader("2. Madurez del SGC por Requisito ISO 9001")
             req_stats = compute_requirement_stats(df_matriz)
             fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=['#3B82F6'], text_auto='.1f')
             fig_req.update_layout(yaxis_range=[0, 110], plot_bgcolor='rgba(0,0,0,0)')
@@ -211,7 +301,7 @@ elif opcion == "📝 Matriz de Hallazgos":
                 with st.form(key=f"form_matriz_{id_sel}"):
                     c1, c2 = st.columns(2)
                     with c1:
-                        st.info(f"**Cláusula ISO:** {fila_editar['requisito_iso']} | **Detalle:** {fila_editar['requisito_especifico']}")
+                        st.info(f"**Requisito ISO:** {fila_editar['requisito_iso']} | **Detalle:** {fila_editar['requisito_especifico']}")
                         tipo_h = st.selectbox("Tipo de Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"],
                                              index=0 if fila_editar['tipo_hallazgo']=='Conforme' else 1 if fila_editar['tipo_hallazgo']=='No Conforme' else 2)
                     with c2:
@@ -248,9 +338,9 @@ elif opcion == "📝 Matriz de Hallazgos":
                 n_fecha = st.date_input("Fecha:", datetime.now())
                 n_proc = st.text_input("Proceso (Siglas):").upper()
                 n_auditor = st.text_input("Auditor:")
-                n_iso = st.number_input("Cláusula ISO (4-10):", 4, 10, 4)
+                n_iso = st.number_input("Requisito ISO (4-10):", 4, 10, 4)
             with col2:
-                n_esp = st.text_input("Sub-cláusula (ej. 7.1.4):")
+                n_esp = st.text_input("Sub-requisito (ej. 7.1.4):")
                 n_legal = st.text_input("Requisito Interno / Legal:")
                 n_tipo = st.selectbox("Tipo Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"])
                 n_cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"])
@@ -262,7 +352,7 @@ elif opcion == "📝 Matriz de Hallazgos":
                 try:
                     validate_required(n_proc, "Proceso")
                     validate_required(n_auditor, "Auditor")
-                    validate_required(n_esp, "Sub-cláusula")
+                    validate_required(n_esp, "Sub-requisito")
                     if n_cump == "No Conforme":
                         validate_required(n_evid, "Evidencia (requerida si No Conforme)")
 
@@ -337,7 +427,7 @@ elif opcion == "⚙️ Seguimiento SAC / OM":
                 s_proc = st.text_input("Proceso Responsable:").upper()
                 s_auditor = st.text_input("Auditor Emisor:")
             with cx2:
-                s_req = st.text_input("Requisito / Cláusula:")
+                s_req = st.text_input("Requisito / Requisito:")
                 s_tipo = st.selectbox("Tipo Plan:", ["Acción Correctiva", "Oportunidad de mejora"])
                 s_cod = st.text_input("Código único SAC/OM:")
             s_obs = st.text_area("Detalles / Plan Propuesto:")
@@ -346,7 +436,7 @@ elif opcion == "⚙️ Seguimiento SAC / OM":
                 try:
                     validate_required(s_proc, "Proceso")
                     validate_required(s_auditor, "Auditor")
-                    validate_required(s_req, "Requisito / Cláusula")
+                    validate_required(s_req, "Requisito / Requisito")
                     validate_required(s_cod, "Código SAC/OM")
                     validate_required(s_obs, "Detalles / Plan")
 
