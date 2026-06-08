@@ -192,7 +192,53 @@ if opcion == "📊 Dashboard de Dirección":
     st.title("📊 Dashboard")
     st.markdown("Resultados calculados dinámicamente desde el Google Sheet institucional.")
 
-    stats = compute_conformidad_stats(df_matriz)
+    # Filtros interactivos
+    st.write("**🔍 Filtros**")
+    filter_cols = st.columns([2, 2, 2])
+
+    with filter_cols[0]:
+        auditor_filter = st.multiselect(
+            "Auditor",
+            options=sorted(df_matriz['auditor_responsable'].dropna().unique()),
+            default=None,
+            help="Deja vacío para ver todos"
+        )
+
+    with filter_cols[1]:
+        proceso_filter = st.multiselect(
+            "Proceso",
+            options=sorted(df_matriz['proceso_auditado'].dropna().unique()),
+            default=None,
+            help="Deja vacío para ver todos"
+        )
+
+    with filter_cols[2]:
+        fecha_range = st.date_input(
+            "Rango de Fecha",
+            value=(df_matriz['fecha'].min() if not df_matriz.empty else datetime.now(),
+                   df_matriz['fecha'].max() if not df_matriz.empty else datetime.now()),
+            help="Selecciona rango de auditoría"
+        )
+
+    # Aplicar filtros
+    df_filtered = df_matriz.copy()
+    if auditor_filter:
+        df_filtered = df_filtered[df_filtered['auditor_responsable'].isin(auditor_filter)]
+    if proceso_filter:
+        df_filtered = df_filtered[df_filtered['proceso_auditado'].isin(proceso_filter)]
+
+    try:
+        df_filtered['fecha'] = pd.to_datetime(df_filtered['fecha'])
+        if isinstance(fecha_range, tuple) and len(fecha_range) == 2:
+            df_filtered = df_filtered[(df_filtered['fecha'] >= pd.Timestamp(fecha_range[0])) &
+                                     (df_filtered['fecha'] <= pd.Timestamp(fecha_range[1]))]
+    except:
+        pass
+
+    st.write("---")
+
+    # Usar df_filtered en lugar de df_matriz para cálculos
+    stats = compute_conformidad_stats(df_filtered)
 
     if stats['total'] == 0:
         st.info("💡 La matriz en la nube no tiene filas evaluadas aún. Proceda al módulo 'Matriz de Hallazgos' para calificar requisitos.")
@@ -209,7 +255,7 @@ if opcion == "📊 Dashboard de Dirección":
         st.write("---")
 
         st.subheader("1. Grado de Conformidad por Proceso Auditado")
-        proc_stats = compute_process_stats(df_matriz)
+        proc_stats = compute_process_stats(df_filtered)
         
         fig_proc = px.bar(proc_stats, x='proceso_auditado', y='Conformidad', color_discrete_sequence=['#1E3A8A'], text_auto='.1f')
         fig_proc.add_hline(y=100, line_dash="dash", line_color="#EF4444", annotation_text="Meta SGC")
@@ -220,7 +266,7 @@ if opcion == "📊 Dashboard de Dirección":
         col_izq, col_der = st.columns(2)
         with col_izq:
             st.subheader("2. Madurez del SGC por Requisito ISO 9001")
-            req_stats = compute_requirement_stats(df_matriz)
+            req_stats = compute_requirement_stats(df_filtered)
             fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=['#3B82F6'], text_auto='.1f')
             fig_req.update_layout(yaxis_range=[0, 110], plot_bgcolor='rgba(0,0,0,0)')
             st.plotly_chart(fig_req, use_container_width=True)
@@ -240,7 +286,7 @@ if opcion == "📊 Dashboard de Dirección":
         st.write("---")
 
         st.subheader("4. Detalle de Procesos Auditados por Auditor")
-        auditor_detail = compute_auditor_stats(df_matriz)
+        auditor_detail = compute_auditor_stats(df_filtered)
         if not auditor_detail.empty:
             # Count unique processes per auditor
             auditor_count = auditor_detail.groupby('auditor_responsable').size().reset_index(name='Total Procesos Únicos')
