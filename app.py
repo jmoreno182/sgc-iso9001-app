@@ -60,9 +60,9 @@ st.markdown("""
             letter-spacing: -0.5px;
         }
 
-        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
-        h2 { font-size: 1.875rem; margin-top: 1.5rem; margin-bottom: 1rem; }
-        h3 { font-size: 1.25rem; margin-bottom: 0.75rem; }
+        h1 { font-size: 1.875rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.375rem; margin-top: 1.25rem; margin-bottom: 0.75rem; }
+        h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
 
         .stButton>button {
             background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
@@ -119,11 +119,15 @@ st.markdown("""
 
         .metric-card {
             background: linear-gradient(135deg, #FFFFFF 0%, #F3F4F6 100%);
-            padding: 2rem;
+            padding: 1.5rem;
             border-radius: 12px;
             border: 1px solid #E5E7EB;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             transition: all 0.3s ease;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .metric-card:hover {
@@ -133,22 +137,24 @@ st.markdown("""
 
         .metric-card h3 {
             color: #6B7280;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
+            margin-top: 0;
         }
 
         .metric-card h2 {
             color: #1F2937;
-            font-size: 2.5rem;
-            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+            margin: 0.25rem 0 0.25rem 0;
+            line-height: 1.2;
         }
 
         .metric-card p {
             color: #9CA3AF;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             margin: 0;
         }
 
