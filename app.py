@@ -372,6 +372,7 @@ if opcion == "📊 Dashboard de Dirección":
                     color_discrete_map={'Cerrado': '#10B981', 'Abierto': '#1E3A8A', 'Pendiente verificar': '#F59E0B'}
                 )
                 fig_sac.update_layout(plot_bgcolor='rgba(0,0,0,0)', yaxis_title='Cantidad de Acciones')
+                fig_sac.update_traces(textposition='outside', texttemplate='%{y:.0f}')
                 st.plotly_chart(fig_sac, use_container_width=True)
             else:
                 st.info("Sin registros en la tabla SAC_OM para graficar.")
