@@ -64,6 +64,40 @@ def load_gsheets_data(max_retries: int = 3) -> Tuple[pd.DataFrame, pd.DataFrame]
 
             df_matriz = pd.DataFrame(sh.worksheet("Matriz").get_all_records())
             df_sac = pd.DataFrame(sh.worksheet("SAC_OM").get_all_records())
+
+            # Normalize column names: lowercase, strip whitespace
+            df_matriz.columns = df_matriz.columns.str.strip().str.lower()
+            df_sac.columns = df_sac.columns.str.strip().str.lower()
+
+            # Expected columns mapping (handle variations)
+            matriz_cols_map = {
+                'id': 'id', 'fecha': 'fecha', 'proceso auditado': 'proceso_auditado',
+                'proceso_auditado': 'proceso_auditado', 'auditor responsable': 'auditor_responsable',
+                'auditor_responsable': 'auditor_responsable', 'requisito iso 9001:2015': 'requisito_iso',
+                'requisito iso': 'requisito_iso', 'requisito_iso': 'requisito_iso',
+                'requisito específico iso 9001:2015': 'requisito_especifico', 'requisito específico': 'requisito_especifico',
+                'requisito_especifico': 'requisito_especifico', 'requisito interno / legal': 'requisito_interno_legal',
+                'requisito_interno_legal': 'requisito_interno_legal', 'tipo de hallazgo': 'tipo_hallazgo',
+                'tipo_hallazgo': 'tipo_hallazgo', 'cumplimiento del requisito': 'cumplimiento',
+                'cumplimiento': 'cumplimiento', 'evidencia objetiva de nc': 'evidencia_objetiva',
+                'evidencia_objetiva': 'evidencia_objetiva', 'observaciones / comentarios adicionales': 'observaciones',
+                'observaciones': 'observaciones'
+            }
+
+            sac_cols_map = {
+                'id': 'id', 'fecha': 'fecha', 'proceso auditado': 'proceso_auditado',
+                'proceso_auditado': 'proceso_auditado', 'auditor responsable': 'auditor_responsable',
+                'auditor_responsable': 'auditor_responsable', 'requisito iso': 'requisito_iso',
+                'requisito_iso': 'requisito_iso', 'tipo de plan': 'tipo_plan', 'tipo_plan': 'tipo_plan',
+                'código': 'codigo', 'codigo': 'codigo', 'estatus plan': 'estatus_plan',
+                'estatus_plan': 'estatus_plan', 'estatus eficacia': 'estatus_la_eficacia',
+                'estatus_la_eficacia': 'estatus_la_eficacia', 'estatus_eficacia': 'estatus_la_eficacia',
+                'observaciones': 'observaciones'
+            }
+
+            df_matriz = df_matriz.rename(columns=matriz_cols_map)
+            df_sac = df_sac.rename(columns=sac_cols_map)
+
             print("✓ Data loaded successfully")
 
             if df_matriz.empty:
