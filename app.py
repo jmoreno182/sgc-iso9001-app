@@ -189,7 +189,7 @@ opcion = st.sidebar.radio(
 # MÓDULO 1: DASHBOARD DE DIRECCIÓN
 # ==========================================
 if opcion == "📊 Dashboard de Dirección":
-    st.title("📊 Dashboard Ejecutivo de Calidad (Live)")
+    st.title("📊 Dashboard")
     st.markdown("Resultados calculados dinámicamente desde el Google Sheet institucional.")
 
     stats = compute_conformidad_stats(df_matriz)
