@@ -85,6 +85,38 @@ st.markdown("""
             transform: translateY(0);
         }
 
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.75rem; }
+            h2 { font-size: 1.25rem; }
+            h3 { font-size: 1rem; }
+            .metric-card {
+                padding: 1rem;
+                margin-bottom: 0.75rem;
+            }
+            .metric-card h2 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+            h2 { font-size: 1.125rem; }
+            .stButton>button {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+            .metric-card {
+                padding: 0.75rem;
+            }
+            .metric-card h3 {
+                font-size: 0.75rem;
+            }
+            .metric-card h2 {
+                font-size: 1.5rem;
+            }
+        }
+
         .metric-card {
             background: linear-gradient(135deg, #FFFFFF 0%, #F3F4F6 100%);
             padding: 2rem;
@@ -200,9 +232,9 @@ if opcion == "📊 Dashboard de Dirección":
     st.title("📊 Dashboard")
     st.markdown("Resultados calculados dinámicamente desde el Google Sheet institucional.")
 
-    # Filtros interactivos
+    # Filtros interactivos (responsive)
     st.write("**🔍 Filtros**")
-    filter_cols = st.columns([2, 2, 2])
+    filter_cols = st.columns([1, 1, 1], gap="medium")
 
     with filter_cols[0]:
         auditor_filter = st.multiselect(
@@ -260,8 +292,9 @@ if opcion == "📊 Dashboard de Dirección":
     if stats['total'] == 0:
         st.info("💡 La matriz en la nube no tiene filas evaluadas aún. Proceda al módulo 'Matriz de Hallazgos' para calificar requisitos.")
     else:
-        # KPIs mejorados con trending
-        k1, k2, k3, k4 = st.columns(4)
+        # KPIs mejorados con trending (responsive)
+        kpi_cols = st.columns(4)
+        k1, k2, k3, k4 = kpi_cols
         with k1:
             trend_color = '#10B981' if trend['trend'] == '↑' else '#EF4444' if trend['trend'] == '↓' else '#6B7280'
             st.markdown(f"<div class='metric-card'><h3>Conformidad Global</h3><h2>{stats['pct']:.1f}%</h2><p style='color: {trend_color}; font-size: 1.5rem;'>{trend['trend']} {abs(stats['pct'] - trend['previous']):.1f}p</p></div>", unsafe_allow_html=True)
