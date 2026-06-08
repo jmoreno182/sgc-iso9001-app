@@ -247,18 +247,45 @@ if opcion == "📊 Dashboard de Dirección":
 
     # Usar df_filtered en lugar de df_matriz para cálculos
     stats = compute_conformidad_stats(df_filtered)
+    trend = compute_conformidad_trend(df_filtered)
 
     if stats['total'] == 0:
         st.info("💡 La matriz en la nube no tiene filas evaluadas aún. Proceda al módulo 'Matriz de Hallazgos' para calificar requisitos.")
     else:
-        k1, k2, k3 = st.columns(3)
+        # KPIs mejorados con trending
+        k1, k2, k3, k4 = st.columns(4)
         with k1:
-            st.markdown(f"<div class='metric-card'><h3>Grado Conformidad Global</h3><h2>{stats['pct']:.2f}%</h2><p>Sobre requisitos evaluados</p></div>", unsafe_allow_html=True)
+            trend_color = '#10B981' if trend['trend'] == '↑' else '#EF4444' if trend['trend'] == '↓' else '#6B7280'
+            st.markdown(f"<div class='metric-card'><h3>Conformidad Global</h3><h2>{stats['pct']:.1f}%</h2><p style='color: {trend_color}; font-size: 1.5rem;'>{trend['trend']} {abs(stats['pct'] - trend['previous']):.1f}p</p></div>", unsafe_allow_html=True)
         with k2:
             st.markdown(f"<div class='metric-card'><h3>Requisitos Evaluados</h3><h2>{stats['total']}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
         with k3:
             abiertos = len(df_sac[df_sac['estatus_plan']=='Abierto']) if not df_sac.empty else 0
-            st.markdown(f"<div class='metric-card'><h3>Planes SAC/OM Abiertos</h3><h2>{abiertos}</h2><p>Pendientes por revisión de eficacia</p></div>", unsafe_allow_html=True)
+            sac_color = '#EF4444' if abiertos > 5 else '#F59E0B' if abiertos > 0 else '#10B981'
+            st.markdown(f"<div class='metric-card'><h3>SAC/OM Abiertos</h3><h2 style='color: {sac_color};'>{abiertos}</h2><p>Pendientes por verificar</p></div>", unsafe_allow_html=True)
+        with k4:
+            # Auditor con más carga
+            auditor_comp = compute_auditor_comparison(df_filtered)
+            if not auditor_comp.empty:
+                top_auditor = auditor_comp.loc[auditor_comp['Requisitos Evaluados'].idxmax()]
+                st.markdown(f"<div class='metric-card'><h3>Auditor Top</h3><h2>{top_auditor['Auditor']}</h2><p>{int(top_auditor['Requisitos Evaluados'])} requisitos</p></div>", unsafe_allow_html=True)
+
+        st.write("---")
+
+        # Búsqueda rápida
+        with st.expander("🔍 Búsqueda Rápida", expanded=False):
+            search_term = st.text_input("Buscar por auditor, proceso, requisito:", placeholder="ej: Carlos, IT, 7.1")
+            if search_term:
+                df_search = df_filtered[
+                    (df_filtered['auditor_responsable'].str.contains(search_term, case=False, na=False)) |
+                    (df_filtered['proceso_auditado'].str.contains(search_term, case=False, na=False)) |
+                    (df_filtered['requisito_iso'].astype(str).str.contains(search_term, case=False, na=False))
+                ]
+                if not df_search.empty:
+                    st.write(f"**{len(df_search)} resultados encontrados**")
+                    st.dataframe(df_search[['auditor_responsable', 'proceso_auditado', 'requisito_iso', 'cumplimiento']], use_container_width=True, hide_index=True)
+                else:
+                    st.info("Sin resultados")
 
         st.write("---")
 
@@ -323,6 +350,25 @@ if opcion == "📊 Dashboard de Dirección":
                         use_container_width=True,
                         hide_index=True
                     )
+
+            # Comparativas auditor vs auditor
+            st.write("---")
+            st.subheader("5. Comparativa: Productividad y Conformidad por Auditor")
+            auditor_comp = compute_auditor_comparison(df_filtered)
+            if not auditor_comp.empty:
+                # Tabla comparativa
+                st.write("**Tabla Comparativa de Auditores**")
+                auditor_comp_display = auditor_comp.sort_values('Requisitos Evaluados', ascending=False)
+                st.dataframe(auditor_comp_display, use_container_width=True, hide_index=True)
+
+                # Gráfico comparativo
+                fig_comp = px.scatter(auditor_comp, x='Requisitos Evaluados', y='Conformidad',
+                                     size='Requisitos Evaluados', text='Auditor',
+                                     color_discrete_sequence=['#3B82F6'],
+                                     labels={'Requisitos Evaluados': 'Productividad',
+                                            'Conformidad': 'Conformidad (%)'})
+                fig_comp.update_layout(plot_bgcolor='rgba(0,0,0,0)', height=400)
+                st.plotly_chart(fig_comp, use_container_width=True)
         else:
             st.info("Sin datos de auditores para graficar.")
 
