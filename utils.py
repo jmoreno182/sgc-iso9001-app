@@ -43,8 +43,6 @@ def load_gsheets_data(max_retries: int = 3) -> Tuple[pd.DataFrame, pd.DataFrame]
 
     for attempt in range(max_retries):
         try:
-            print(f"Attempt {attempt + 1}/{max_retries}: Connecting to Google Sheets...")
-
             sheet_url = st.secrets.get("connections", {}).get("gsheets", {}).get("spreadsheet", "")
             if not sheet_url:
                 raise ValueError("No spreadsheet URL in secrets: connections.gsheets.spreadsheet")
@@ -89,7 +87,7 @@ def load_gsheets_data(max_retries: int = 3) -> Tuple[pd.DataFrame, pd.DataFrame]
                 'proceso_auditado': 'proceso_auditado', 'auditor responsable': 'auditor_responsable',
                 'auditor_responsable': 'auditor_responsable', 'requisito iso': 'requisito_iso',
                 'requisito_iso': 'requisito_iso', 'tipo de plan': 'tipo_plan', 'tipo_plan': 'tipo_plan',
-                'código': 'codigo', 'codigo': 'codigo', 'estatus plan': 'estatus_plan',
+                'codigo': 'codigo', 'codigo': 'codigo', 'estatus plan': 'estatus_plan',
                 'estatus_plan': 'estatus_plan', 'estatus eficacia': 'estatus_la_eficacia',
                 'estatus_la_eficacia': 'estatus_la_eficacia', 'estatus_eficacia': 'estatus_la_eficacia',
                 'observaciones': 'observaciones'
@@ -97,8 +95,6 @@ def load_gsheets_data(max_retries: int = 3) -> Tuple[pd.DataFrame, pd.DataFrame]
 
             df_matriz = df_matriz.rename(columns=matriz_cols_map)
             df_sac = df_sac.rename(columns=sac_cols_map)
-
-            print("✓ Data loaded successfully")
 
             if df_matriz.empty:
                 st.warning("⚠️ Hoja 'Matriz' vacía. Inicia ingresando requisitos.")
