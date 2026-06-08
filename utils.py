@@ -162,6 +162,13 @@ def compute_requirement_stats(df: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(name='Conformidad')
 
 
+@st.cache_data
+def compute_auditor_stats(df: pd.DataFrame) -> pd.DataFrame:
+    """Count processes audited per auditor."""
+    df_clean = df[df['auditor_responsable'].notna() & (df['auditor_responsable'] != '')]
+    return df_clean.groupby('auditor_responsable').size().reset_index(name='Procesos Auditados').sort_values('Procesos Auditados', ascending=False)
+
+
 def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
     """Update worksheet in Google Sheets with new data."""
     import gspread

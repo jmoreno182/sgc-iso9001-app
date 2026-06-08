@@ -13,6 +13,7 @@ from utils import (
     compute_conformidad_stats,
     compute_process_stats,
     compute_requirement_stats,
+    compute_auditor_stats,
 )
 
 # ==========================================
@@ -145,6 +146,17 @@ if opcion == "📊 Dashboard de Dirección":
                 st.plotly_chart(fig_sac, use_container_width=True)
             else:
                 st.info("Sin registros en la tabla SAC_OM para graficar.")
+
+        st.write("---")
+
+        st.subheader("4. Procesos Auditados por Auditor")
+        auditor_stats = compute_auditor_stats(df_matriz)
+        if not auditor_stats.empty:
+            fig_auditor = px.bar(auditor_stats, x='auditor_responsable', y='Procesos Auditados', color_discrete_sequence=['#8B5CF6'], text_auto='d')
+            fig_auditor.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title='Auditor', yaxis_title='Cantidad de Procesos')
+            st.plotly_chart(fig_auditor, use_container_width=True)
+        else:
+            st.info("Sin datos de auditores para graficar.")
 
 # ==========================================
 # MÓDULO 2: MATRIZ DE HALLAZGOS (CRUD)
