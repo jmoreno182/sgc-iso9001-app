@@ -149,12 +149,26 @@ if opcion == "📊 Dashboard de Dirección":
 
         st.write("---")
 
-        st.subheader("4. Procesos Auditados por Auditor")
-        auditor_stats = compute_auditor_stats(df_matriz)
-        if not auditor_stats.empty:
-            fig_auditor = px.bar(auditor_stats, x='auditor_responsable', y='Procesos Auditados', color_discrete_sequence=['#8B5CF6'], text_auto='d')
-            fig_auditor.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title='Auditor', yaxis_title='Cantidad de Procesos')
+        st.subheader("4. Detalle de Procesos Auditados por Auditor")
+        auditor_detail = compute_auditor_stats(df_matriz)
+        if not auditor_detail.empty:
+            # Count unique processes per auditor
+            auditor_count = auditor_detail.groupby('auditor_responsable').size().reset_index(name='Total Procesos Únicos')
+
+            # Bar chart of unique process count
+            fig_auditor = px.bar(auditor_count, x='auditor_responsable', y='Total Procesos Únicos',
+                                color_discrete_sequence=['#8B5CF6'], text_auto='d')
+            fig_auditor.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title='Auditor',
+                                     yaxis_title='Procesos Únicos Auditados')
             st.plotly_chart(fig_auditor, use_container_width=True)
+
+            # Interactive detail table
+            st.write("**Detalle: Auditor-Proceso-Fecha**")
+            st.dataframe(auditor_detail.rename(columns={
+                'auditor_responsable': 'Auditor',
+                'proceso_auditado': 'Proceso',
+                'fecha': 'Fecha'
+            }), use_container_width=True, hide_index=True)
         else:
             st.info("Sin datos de auditores para graficar.")
 

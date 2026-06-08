@@ -164,9 +164,13 @@ def compute_requirement_stats(df: pd.DataFrame) -> pd.DataFrame:
 
 @st.cache_data
 def compute_auditor_stats(df: pd.DataFrame) -> pd.DataFrame:
-    """Count processes audited per auditor."""
-    df_clean = df[df['auditor_responsable'].notna() & (df['auditor_responsable'] != '')]
-    return df_clean.groupby('auditor_responsable').size().reset_index(name='Procesos Auditados').sort_values('Procesos Auditados', ascending=False)
+    """Get unique processes per auditor with dates."""
+    df_clean = df[df['auditor_responsable'].notna() & (df['auditor_responsable'] != '') &
+                   df['proceso_auditado'].notna() & (df['proceso_auditado'] != '')]
+    # Select unique auditor-proceso combinations
+    return df_clean[['auditor_responsable', 'proceso_auditado', 'fecha']].drop_duplicates(
+        subset=['auditor_responsable', 'proceso_auditado']
+    ).sort_values('auditor_responsable')
 
 
 def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
