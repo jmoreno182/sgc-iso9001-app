@@ -162,13 +162,23 @@ if opcion == "📊 Dashboard de Dirección":
                                      yaxis_title='Procesos Únicos Auditados')
             st.plotly_chart(fig_auditor, use_container_width=True)
 
-            # Interactive detail table
-            st.write("**Detalle: Auditor-Proceso-Fecha**")
-            st.dataframe(auditor_detail.rename(columns={
-                'auditor_responsable': 'Auditor',
-                'proceso_auditado': 'Proceso',
-                'fecha': 'Fecha'
-            }), use_container_width=True, hide_index=True)
+            # Grouped detail table by auditor
+            st.write("**Detalle: Procesos por Auditor**")
+
+            for auditor in sorted(auditor_detail['auditor_responsable'].unique()):
+                auditor_rows = auditor_detail[auditor_detail['auditor_responsable'] == auditor][
+                    ['proceso_auditado', 'fecha']
+                ].reset_index(drop=True)
+
+                with st.expander(f"📋 {auditor} ({len(auditor_rows)} procesos)", expanded=True):
+                    st.dataframe(
+                        auditor_rows.rename(columns={
+                            'proceso_auditado': 'Proceso',
+                            'fecha': 'Fecha'
+                        }),
+                        use_container_width=True,
+                        hide_index=True
+                    )
         else:
             st.info("Sin datos de auditores para graficar.")
 
