@@ -303,14 +303,11 @@ if "GOOGLE_SERVICE_ACCOUNT_INFO" not in st.secrets:
     """)
     st.stop()
 
-st.write("📡 Inicializando conexión...")
+
 try:
     df_matriz, df_sac = load_gsheets_data(max_retries=3)
-    st.write("✓ Conexión exitosa")
 except Exception as e:
-    st.error(f"❌ Error al cargar datos de Google Sheets:")
-    st.error(str(e))
-    st.info("**Soluciones:**\n1. Verifica conexión a internet\n2. Revisa `.streamlit/secrets.toml` tiene URL válida\n3. Verifica permisos en Google Sheets")
+    st.error(f"Error al cargar datos: {str(e)}")
     st.stop()
 
 # ==========================================
@@ -319,10 +316,10 @@ except Exception as e:
 st.sidebar.markdown("""
     <div style="text-align: center; padding: 1.5rem 0; border-bottom: 2px solid #E5E7EB; margin-bottom: 1.5rem;">
         <h2 style="font-family: 'Poppins', sans-serif; margin: 0.5rem 0; background: linear-gradient(135deg, #1F2937 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-            SGC ISO 9001:2015
+            Auditoría Interna del SGC
         </h2>
         <p style="color: #6B7280; font-size: 0.9rem; margin: 0.5rem 0; font-style: italic;">
-            Control Sincronizado en la Nube
+            SGC ISO 9001:2015
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -337,10 +334,8 @@ opcion = st.sidebar.radio(
 # ==========================================
 if opcion == "📊 Dashboard de Dirección":
     st.title("📊 Dashboard")
-    st.markdown("Resultados calculados dinámicamente desde el Google Sheet institucional.")
 
-    # Filtros interactivos (responsive)
-    st.write("**🔍 Filtros**")
+    # Filtros interactivos
     filter_cols = st.columns([1, 1, 1], gap="medium")
 
     with filter_cols[0]:
@@ -397,7 +392,7 @@ if opcion == "📊 Dashboard de Dirección":
     trend = compute_conformidad_trend(df_filtered)
 
     if stats['total'] == 0:
-        st.info("💡 La matriz en la nube no tiene filas evaluadas aún. Proceda al módulo 'Matriz de Hallazgos' para calificar requisitos.")
+        st.info("Sin datos para mostrar. Agrega requisitos en 'Matriz de Hallazgos'.")
     else:
         # KPIs mejorados con trending (responsive)
         kpi_cols = st.columns(4)
@@ -584,7 +579,7 @@ elif opcion == "📝 Matriz de Hallazgos":
                             st.error(f"❌ Error validación: {str(e)}")
 
     with tab2:
-        st.subheader("Incorporar un Requisito Adicional sobre la marcha")
+        st.subheader("Agregar Requisito")
         with st.form("form_nueva_fila"):
             col1, col2 = st.columns(2)
             with col1:
@@ -672,7 +667,7 @@ elif opcion == "⚙️ Seguimiento SAC / OM":
             st.info("No hay planes de acción registrados en este momento.")
             
     with tab_s2:
-        st.subheader("Dar de alta un nuevo Plan de Acción")
+        st.subheader("Registrar Nuevo Plan")
         with st.form("new_sac"):
             cx1, cx2 = st.columns(2)
             with cx1:
@@ -720,7 +715,6 @@ elif opcion == "⚙️ Seguimiento SAC / OM":
 # ==========================================
 elif opcion == "💾 Exportar Respaldo":
     st.title("💾 Descarga de Seguridad")
-    st.markdown("Aunque tus datos están en Google Sheets, siempre es buena práctica descargar un respaldo local en Excel.")
     
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
