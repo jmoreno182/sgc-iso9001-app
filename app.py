@@ -407,29 +407,31 @@ if opcion == "ANÁLISIS":
     if stats['total'] == 0:
         st.info("Sin datos para mostrar. Agrega requisitos en 'Matriz de Hallazgos'.")
     else:
-        # KPIs mejorados con trending (responsive)
-        kpi_cols = st.columns(4)
-        k1, k2, k3, k4 = kpi_cols
-        with k1:
+        # Métricas (2+2 grid layout)
+        row1_col1, row1_col2 = st.columns(2, gap="medium")
+        with row1_col1:
             trend_color = '#10B981' if trend['trend'] == '↑' else '#EF4444' if trend['trend'] == '↓' else '#6B7280'
             st.markdown(f"<div class='metric-card'><h3>Conformidad Global</h3><h2>{stats['pct']:.1f}%</h2><p style='color: {trend_color}; font-size: 1.5rem;'>{trend['trend']} {abs(stats['pct'] - trend['previous']):.1f}p</p></div>", unsafe_allow_html=True)
-        with k2:
+        with row1_col2:
             st.markdown(f"<div class='metric-card'><h3>Requisitos Evaluados</h3><h2>{stats['total']}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
-        with k3:
+
+        st.divider()
+
+        row2_col1, row2_col2 = st.columns(2, gap="medium")
+        with row2_col1:
             abiertos = len(df_sac[df_sac['estatus_plan']=='Abierto']) if not df_sac.empty else 0
             sac_color = '#EF4444' if abiertos > 5 else '#F59E0B' if abiertos > 0 else '#10B981'
             st.markdown(f"<div class='metric-card'><h3>SAC/OM Abiertos</h3><h2 style='color: {sac_color};'>{abiertos}</h2><p>Pendientes por verificar</p></div>", unsafe_allow_html=True)
-        with k4:
-            # Auditor con más carga
+        with row2_col2:
             auditor_comp = compute_auditor_comparison(df_filtered)
             if not auditor_comp.empty:
                 top_auditor = auditor_comp.loc[auditor_comp['Requisitos Evaluados'].idxmax()]
                 st.markdown(f"<div class='metric-card'><h3>Auditor Top</h3><h2>{top_auditor['Auditor']}</h2><p>{int(top_auditor['Requisitos Evaluados'])} requisitos</p></div>", unsafe_allow_html=True)
 
-        st.write("---")
+        st.divider()
 
         # Búsqueda rápida
-        with st.expander("🔍 Búsqueda Rápida", expanded=False):
+        with st.expander("Búsqueda Rápida", expanded=False):
             search_term = st.text_input("Buscar por auditor, proceso, requisito:", placeholder="ej: Carlos, IT, 7.1")
             if search_term:
                 df_search = df_filtered[
@@ -501,7 +503,7 @@ if opcion == "ANÁLISIS":
                     ['proceso_auditado', 'fecha']
                 ].reset_index(drop=True)
 
-                with st.expander(f"📋 {auditor} ({len(auditor_rows)} procesos)", expanded=True):
+                with st.expander(f"{auditor} ({len(auditor_rows)} procesos)", expanded=True):
                     st.dataframe(
                         auditor_rows.rename(columns={
                             'proceso_auditado': 'Proceso',
@@ -539,75 +541,59 @@ if opcion == "ANÁLISIS":
 elif opcion == "ENTRADA":
     st.title("ENTRADA DE HALLAZGOS")
     
-    tab1, tab2 = st.tabs(["🔄 Evaluar Requisitos (Plan Pre-cargado)", "➕ Agregar Fila al Plan"])
+    tab1, tab2 = st.tabs(["Historial del Día", "Registrar Hallazgo"])
     
     with tab1:
-        procesos_disponibles = df_matriz['proceso_auditado'].dropna().unique().tolist()
+        st.subheader("Hallazgos Registrados")
 
-        if not procesos_disponibles:
-            st.warning("⚠️ Sin procesos cargados. Añade filas en la pestaña 'Agregar Fila'.")
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            filter_proc = st.multiselect("Proceso:", sorted(df_matriz['proceso_auditado'].dropna().unique()))
+        with col_f2:
+            filter_auditor = st.multiselect("Auditor:", sorted(df_matriz['auditor_responsable'].dropna().unique()))
+
+        df_filtered_matriz = df_matriz.copy()
+        if filter_proc:
+            df_filtered_matriz = df_filtered_matriz[df_filtered_matriz['proceso_auditado'].isin(filter_proc)]
+        if filter_auditor:
+            df_filtered_matriz = df_filtered_matriz[df_filtered_matriz['auditor_responsable'].isin(filter_auditor)]
+
+        if df_filtered_matriz.empty:
+            st.info("Sin hallazgos para mostrar")
         else:
-            proc_sel = st.selectbox("Seleccione el proceso en evaluación:", procesos_disponibles)
+            for idx, row in df_filtered_matriz.iterrows():
+                status_color = "#10B981" if row['cumplimiento'] == 'Conforme' else "#EF4444"
+                status_icon = "✓" if row['cumplimiento'] == 'Conforme' else "✗"
 
-            df_proc = df_matriz[df_matriz['proceso_auditado'] == proc_sel]
-            if df_proc.empty:
-                st.error("❌ No hay requisitos para este proceso.")
-            else:
-                st.dataframe(df_proc[['id', 'requisito_iso', 'requisito_especifico', 'tipo_hallazgo', 'cumplimiento', 'observaciones']], use_container_width=True, hide_index=True)
-
-                id_sel = st.selectbox("ID del requisito a calificar:", df_proc['id'].tolist())
-                idx_row = df_matriz[df_matriz['id'] == id_sel].index[0]
-                fila_editar = df_matriz.loc[idx_row]
-
-                with st.form(key=f"form_matriz_{id_sel}"):
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.info(f"**Requisito ISO:** {fila_editar['requisito_iso']} | **Detalle:** {fila_editar['requisito_especifico']}")
-                        tipo_h = st.selectbox("Tipo de Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"],
-                                             index=0 if fila_editar['tipo_hallazgo']=='Conforme' else 1 if fila_editar['tipo_hallazgo']=='No Conforme' else 2)
-                    with c2:
-                        cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"],
-                                           index=0 if fila_editar['cumplimiento']=='Conforme' else 1)
-
-                    evid = st.text_area("Evidencia Objetiva hallada:", value=str(fila_editar['evidencia_objetiva'] or ''))
-                    obs = st.text_area("Observaciones técnicas:", value=str(fila_editar['observaciones'] or ''))
-
-                    if st.form_submit_button("Sincronizar con Google Sheets"):
-                        try:
-                            if cump == "No Conforme" and not evid.strip():
-                                st.error("❌ Evidencia requerida cuando cumplimiento es 'No Conforme'")
-                            else:
-                                df_matriz.at[idx_row, 'tipo_hallazgo'] = tipo_h
-                                df_matriz.at[idx_row, 'cumplimiento'] = cump
-                                df_matriz.at[idx_row, 'evidencia_objetiva'] = evid
-                                df_matriz.at[idx_row, 'observaciones'] = obs
-
-                                try:
-                                    update_gsheets("Matriz", df_matriz)
-                                    st.success("✓ Datos sincronizados en la nube!")
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Error al sincronizar: {str(e)}")
-                        except Exception as e:
-                            st.error(f"❌ Error validación: {str(e)}")
+                with st.expander(f"#{row['id']} | {row['proceso_auditado']} | Req {row['requisito_iso']} | {status_icon}", expanded=False):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write(f"**Auditor:** {row['auditor_responsable']}")
+                        st.write(f"**Fecha:** {row['fecha']}")
+                        st.write(f"**Tipo:** {row['tipo_hallazgo']}")
+                    with col2:
+                        st.write(f"**Cumplimiento:** {row['cumplimiento']}")
+                    st.write(f"**Evidencia:** {row['evidencia_objetiva']}")
+                    if row['observaciones']:
+                        st.write(f"**Observaciones:** {row['observaciones']}")
 
     with tab2:
-        st.subheader("Agregar Requisito")
+        st.subheader("Registrar Nuevo Hallazgo")
         with st.form("form_nueva_fila"):
-            col1, col2 = st.columns(2)
-            with col1:
-                n_fecha = st.date_input("Fecha:", datetime.now())
-                n_proc = st.text_input("Proceso (Siglas):").upper()
-                n_auditor = st.text_input("Auditor:")
-                n_iso = st.number_input("Requisito ISO (4-10):", 4, 10, 4)
-            with col2:
-                n_esp = st.text_input("Sub-requisito (ej. 7.1.4):")
-                n_legal = st.text_input("Requisito Interno / Legal:")
-                n_tipo = st.selectbox("Tipo Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"])
-                n_cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"])
-                
-            n_evid = st.text_area("Evidencia:")
-            n_obs = st.text_area("Observaciones:")
+            n_fecha = st.date_input("Fecha:", datetime.now())
+            n_proc = st.text_input("Proceso (Siglas):").upper()
+            n_auditor = st.text_input("Auditor:")
+            n_iso = st.number_input("Requisito ISO (4-10):", 4, 10, 4)
+            n_esp = st.text_input("Sub-requisito (ej. 7.1.4):")
+            n_legal = st.text_input("Requisito Interno / Legal:")
+            n_tipo = st.selectbox("Tipo Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"])
+            n_cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"])
+
+            if n_cump == "No Conforme":
+                st.warning("⚠️ Evidencia requerida para 'No Conforme'")
+
+            n_evid = st.text_area("Evidencia Objetiva:", height=100)
+            n_obs = st.text_area("Observaciones:", height=80)
             
             if st.form_submit_button("Insertar Nueva Fila"):
                 try:
@@ -642,8 +628,9 @@ elif opcion == "ENTRADA":
 # ==========================================
 elif opcion == "SEGUIMIENTO":
     st.title("SEGUIMIENTO DE ACCIONES")
-    
-    tab_s1, tab_s2 = st.tabs(["📋 Listado y Cierre Eficacia", "➕ Registrar Apertura"])
+    st.subheader("Estado de Acciones Correctivas")
+
+    tab_s1, tab_s2 = st.tabs(["Acciones Abiertas", "Registrar Nueva"])
     
     with tab_s1:
         if not df_sac.empty:
@@ -680,7 +667,7 @@ elif opcion == "SEGUIMIENTO":
             st.info("No hay planes de acción registrados en este momento.")
             
     with tab_s2:
-        st.subheader("Registrar Nuevo Plan")
+        st.subheader("Registrar Nueva Acción")
         with st.form("new_sac"):
             cx1, cx2 = st.columns(2)
             with cx1:
