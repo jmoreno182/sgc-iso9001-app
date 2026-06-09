@@ -313,27 +313,40 @@ except Exception as e:
 # ==========================================
 # MENÚ LATERAL DE NAVEGACIÓN
 # ==========================================
-st.sidebar.markdown("""
-    <div style="text-align: center; padding: 1.5rem 0; border-bottom: 2px solid #E5E7EB; margin-bottom: 1.5rem;">
-        <h2 style="font-family: 'Poppins', sans-serif; margin: 0.5rem 0; background: linear-gradient(135deg, #1F2937 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+# Top navigation
+st.markdown("""
+    <div style="text-align: center; padding: 1rem 0; margin-bottom: 2rem; border-bottom: 2px solid #E5E7EB;">
+        <h1 style="margin: 0; font-family: 'Poppins', sans-serif; color: #1F2937;">
             Auditoría Interna del SGC
-        </h2>
-        <p style="color: #6B7280; font-size: 0.9rem; margin: 0.5rem 0; font-style: italic;">
+        </h1>
+        <p style="margin: 0.5rem 0 0 0; color: #6B7280; font-size: 0.9rem; font-style: italic;">
             SGC ISO 9001:2015
         </p>
     </div>
 """, unsafe_allow_html=True)
 
-opcion = st.sidebar.radio(
-    "Seleccione un Módulo:",
-    ["📊 Dashboard de Dirección", "📝 Matriz de Hallazgos", "⚙️ Seguimiento SAC / OM", "💾 Exportar Respaldo"]
-)
+# Initialize session state for module selection
+if "modulo" not in st.session_state:
+    st.session_state.modulo = "ENTRADA"
+
+col1, col2, col3 = st.columns(3, gap="small")
+with col1:
+    if st.button("ENTRADA", key="nav_entrada", use_container_width=True):
+        st.session_state.modulo = "ENTRADA"
+with col2:
+    if st.button("SEGUIMIENTO", key="nav_seguimiento", use_container_width=True):
+        st.session_state.modulo = "SEGUIMIENTO"
+with col3:
+    if st.button("ANÁLISIS", key="nav_analisis", use_container_width=True):
+        st.session_state.modulo = "ANÁLISIS"
+
+opcion = st.session_state.modulo
 
 # ==========================================
 # MÓDULO 1: DASHBOARD DE DIRECCIÓN
 # ==========================================
-if opcion == "📊 Dashboard de Dirección":
-    st.title("📊 Dashboard")
+if opcion == "ANÁLISIS":
+    st.title("ANÁLISIS Y REPORTES")
 
     # Filtros interactivos
     filter_cols = st.columns([1, 1, 1], gap="medium")
@@ -523,8 +536,8 @@ if opcion == "📊 Dashboard de Dirección":
 # ==========================================
 # MÓDULO 2: MATRIZ DE HALLAZGOS (CRUD)
 # ==========================================
-elif opcion == "📝 Matriz de Hallazgos":
-    st.title("📝 Matriz de Hallazgos en la Nube")
+elif opcion == "ENTRADA":
+    st.title("ENTRADA DE HALLAZGOS")
     
     tab1, tab2 = st.tabs(["🔄 Evaluar Requisitos (Plan Pre-cargado)", "➕ Agregar Fila al Plan"])
     
@@ -627,8 +640,8 @@ elif opcion == "📝 Matriz de Hallazgos":
 # ==========================================
 # MÓDULO 3: SEGUIMIENTO SAC / OM (CRUD)
 # ==========================================
-elif opcion == "⚙️ Seguimiento SAC / OM":
-    st.title("⚙️ Control de Acciones Correctivas y OM")
+elif opcion == "SEGUIMIENTO":
+    st.title("SEGUIMIENTO DE ACCIONES")
     
     tab_s1, tab_s2 = st.tabs(["📋 Listado y Cierre Eficacia", "➕ Registrar Apertura"])
     
@@ -713,8 +726,8 @@ elif opcion == "⚙️ Seguimiento SAC / OM":
 # ==========================================
 # MÓDULO 4: EXPORTAR RESPALDO LOCAL
 # ==========================================
-elif opcion == "💾 Exportar Respaldo":
-    st.title("💾 Descarga de Seguridad")
+elif opcion == "EXPORTAR":
+    st.title("EXPORTACIÓN")
     
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
