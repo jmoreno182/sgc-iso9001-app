@@ -577,6 +577,50 @@ elif opcion == "ENTRADA":
                     if row['observaciones']:
                         st.write(f"**Observaciones:** {row['observaciones']}")
 
+                    st.divider()
+
+                    if st.button(f"Editar hallazgo #{row['id']}", key=f"edit_hallazgo_{row['id']}"):
+                        st.session_state[f"editing_hallazgo_{row['id']}"] = True
+
+                    if st.session_state.get(f"editing_hallazgo_{row['id']}", False):
+                        st.subheader("Editar Hallazgo")
+                        with st.form(f"form_edit_hallazgo_{row['id']}"):
+                            tipo_h = st.selectbox("Tipo de Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"],
+                                                 index=0 if row['tipo_hallazgo']=='Conforme' else 1 if row['tipo_hallazgo']=='No Conforme' else 2,
+                                                 key=f"tipo_{row['id']}")
+                            cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"],
+                                               index=0 if row['cumplimiento']=='Conforme' else 1,
+                                               key=f"cump_{row['id']}")
+                            evid = st.text_area("Evidencia Objetiva:", value=str(row['evidencia_objetiva'] or ''), height=100, key=f"evid_{row['id']}")
+                            obs = st.text_area("Observaciones:", value=str(row['observaciones'] or ''), height=80, key=f"obs_{row['id']}")
+
+                            col_btn1, col_btn2 = st.columns(2)
+                            with col_btn1:
+                                if st.form_submit_button("Guardar Cambios"):
+                                    try:
+                                        if cump == "No Conforme" and not evid.strip():
+                                            st.error("⚠️ Evidencia requerida cuando cumplimiento es 'No Conforme'")
+                                        else:
+                                            idx_row = df_matriz[df_matriz['id'] == row['id']].index[0]
+                                            df_matriz.at[idx_row, 'tipo_hallazgo'] = tipo_h
+                                            df_matriz.at[idx_row, 'cumplimiento'] = cump
+                                            df_matriz.at[idx_row, 'evidencia_objetiva'] = evid
+                                            df_matriz.at[idx_row, 'observaciones'] = obs
+
+                                            try:
+                                                update_gsheets("Matriz", df_matriz)
+                                                st.success(f"✓ Hallazgo #{row['id']} actualizado")
+                                                st.session_state[f"editing_hallazgo_{row['id']}"] = False
+                                                st.rerun()
+                                            except Exception as e:
+                                                st.error(f"Error al sincronizar: {str(e)}")
+                                    except Exception as e:
+                                        st.error(f"Error: {str(e)}")
+                            with col_btn2:
+                                if st.form_submit_button("Cancelar"):
+                                    st.session_state[f"editing_hallazgo_{row['id']}"] = False
+                                    st.rerun()
+
     with tab2:
         st.subheader("Registrar Nuevo Hallazgo")
         with st.form("form_nueva_fila"):
