@@ -25,6 +25,39 @@ from utils import (
 )
 
 # ==========================================
+# PLOTLY TEMPLATE PERSONALIZADO
+# ==========================================
+def apply_iso_theme(fig):
+    """Aplica tema ISO 9001 personalizado a gráficos Plotly."""
+    fig.update_layout(
+        font=dict(family="Roboto, sans-serif", size=12, color="#374151"),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(255,255,255,0)',
+        xaxis=dict(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='rgba(229,231,235,0.5)',
+            zeroline=False,
+            showline=True,
+            linewidth=1,
+            linecolor='#E5E7EB'
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridwidth=1,
+            gridcolor='rgba(229,231,235,0.5)',
+            zeroline=False,
+            showline=True,
+            linewidth=1,
+            linecolor='#E5E7EB'
+        ),
+        margin=dict(l=50, r=50, t=50, b=50),
+        hovermode='x unified',
+        transition=dict(duration=300),
+    )
+    return fig
+
+# ==========================================
 # CONFIGURACIÓN DE LA PÁGINA Y ESTILO AZUL
 # ==========================================
 st.set_page_config(
@@ -34,6 +67,7 @@ st.set_page_config(
 )
 
 st.markdown("""
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #1F2937;
@@ -46,7 +80,7 @@ st.markdown("""
         }
 
         * {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         .main {
@@ -54,7 +88,8 @@ st.markdown("""
             padding: 0;
         }
 
-        h1, h2, h3 {
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
             color: #1F2937;
             font-weight: 700;
             letter-spacing: -0.5px;
@@ -75,6 +110,7 @@ st.markdown("""
         }
 
         .stButton>button {
+            font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
             color: white;
             border-radius: 8px;
@@ -82,14 +118,14 @@ st.markdown("""
             padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
             font-size: clamp(0.8rem, 2vw, 1rem);
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
         }
 
         .stButton>button:hover {
             background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
             transform: translateY(-2px);
-            box-shadow: 0 8px 12px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 15px rgba(59, 130, 246, 0.35);
         }
 
         .stButton>button:active {
@@ -133,40 +169,64 @@ st.markdown("""
             padding: clamp(0.75rem, 3vw, 1.5rem);
             border-radius: 12px;
             border: 1px solid #E5E7EB;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
+            border-left: 4px solid #3B82F6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             min-height: clamp(100px, 15vh, 180px);
             display: flex;
             flex-direction: column;
             justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0) 100%);
+            pointer-events: none;
         }
 
         .metric-card:hover {
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 12px 28px rgba(59, 130, 246, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
             transform: translateY(-4px);
+            border-left-color: #2563EB;
         }
 
         .metric-card h3 {
             color: #6B7280;
+            font-family: 'Poppins', sans-serif;
             font-size: clamp(0.65rem, 1.5vw, 0.875rem);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: clamp(0.25rem, 1vw, 0.5rem);
             margin-top: 0;
+            position: relative;
+            z-index: 1;
         }
 
         .metric-card h2 {
             color: #1F2937;
+            font-family: 'Poppins', sans-serif;
             font-size: clamp(1.5rem, 4vw, 2.25rem);
             margin: clamp(0.15rem, 0.5vw, 0.35rem) 0;
             line-height: 1.2;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
         }
 
         .metric-card p {
             color: #9CA3AF;
             font-size: clamp(0.7rem, 1.5vw, 0.9rem);
             margin: 0;
+            position: relative;
+            z-index: 1;
         }
 
         hr { border-color: #E5E7EB; margin: 2rem 0; }
@@ -174,6 +234,12 @@ st.markdown("""
         [data-testid="stExpander"] {
             border: 1px solid #E5E7EB;
             border-radius: 8px;
+            transition: all 0.25s ease;
+        }
+
+        [data-testid="stExpander"]:hover {
+            border-color: #3B82F6;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
         }
 
         .stDataFrame {
@@ -190,6 +256,24 @@ st.markdown("""
         .stMarkdown {
             color: #374151;
             line-height: 1.6;
+        }
+
+        /* Sidebar enhancement */
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
+        }
+
+        [data-testid="stSidebar"] h1 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1F2937 0%, #3B82F6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        [data-testid="stSidebar"] [role="radiogroup"] {
+            gap: 0.5rem;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -232,10 +316,16 @@ except Exception as e:
 # ==========================================
 # MENÚ LATERAL DE NAVEGACIÓN
 # ==========================================
-st.sidebar.image("https://img.icons8.com/fluency/96/google-sheets.png", width=70)
-st.sidebar.title("SGC ISO 9001:2015")
-st.sidebar.markdown("*Control Sincronizado en la Nube*")
-st.sidebar.write("---")
+st.sidebar.markdown("""
+    <div style="text-align: center; padding: 1.5rem 0; border-bottom: 2px solid #E5E7EB; margin-bottom: 1.5rem;">
+        <h2 style="font-family: 'Poppins', sans-serif; margin: 0.5rem 0; background: linear-gradient(135deg, #1F2937 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            SGC ISO 9001:2015
+        </h2>
+        <p style="color: #6B7280; font-size: 0.9rem; margin: 0.5rem 0; font-style: italic;">
+            Control Sincronizado en la Nube
+        </p>
+    </div>
+""", unsafe_allow_html=True)
 
 opcion = st.sidebar.radio(
     "Seleccione un Módulo:",
@@ -349,10 +439,11 @@ if opcion == "📊 Dashboard de Dirección":
 
         st.subheader("1. Grado de Conformidad por Proceso Auditado")
         proc_stats = compute_process_stats(df_filtered)
-        
-        fig_proc = px.bar(proc_stats, x='proceso_auditado', y='Conformidad', color_discrete_sequence=['#1E3A8A'], text_auto='.1f')
+
+        fig_proc = px.bar(proc_stats, x='proceso_auditado', y='Conformidad', color_discrete_sequence=['#3B82F6'], text_auto='.1f')
         fig_proc.add_hline(y=100, line_dash="dash", line_color="#EF4444", annotation_text="Meta SGC")
-        fig_proc.update_layout(yaxis_range=[0, 110], plot_bgcolor='rgba(0,0,0,0)')
+        fig_proc.update_layout(yaxis_range=[0, 110])
+        fig_proc = apply_iso_theme(fig_proc)
         st.plotly_chart(fig_proc, use_container_width=True)
         
         # --- FILA PARA GRÁFICOS 2 Y 3 ---
@@ -360,8 +451,9 @@ if opcion == "📊 Dashboard de Dirección":
         with col_izq:
             st.subheader("2. Madurez del SGC por Requisito ISO 9001")
             req_stats = compute_requirement_stats(df_filtered)
-            fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=['#3B82F6'], text_auto='.1f')
-            fig_req.update_layout(yaxis_range=[0, 110], plot_bgcolor='rgba(0,0,0,0)')
+            fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=['#2563EB'], text_auto='.1f')
+            fig_req.update_layout(yaxis_range=[0, 110])
+            fig_req = apply_iso_theme(fig_req)
             st.plotly_chart(fig_req, use_container_width=True)
             
         with col_der:
@@ -369,10 +461,11 @@ if opcion == "📊 Dashboard de Dirección":
             if not df_sac.empty and 'tipo_plan' in df_sac.columns:
                 fig_sac = px.histogram(
                     df_sac, x='tipo_plan', color='estatus_plan', barmode='group',
-                    color_discrete_map={'Cerrado': '#10B981', 'Abierto': '#1E3A8A', 'Pendiente verificar': '#F59E0B'}
+                    color_discrete_map={'Cerrado': '#10B981', 'Abierto': '#3B82F6', 'Pendiente verificar': '#F59E0B'}
                 )
-                fig_sac.update_layout(plot_bgcolor='rgba(0,0,0,0)', yaxis_title='Cantidad de Acciones')
+                fig_sac.update_layout(yaxis_title='Cantidad de Acciones')
                 fig_sac.update_traces(textposition='outside', texttemplate='%{y:.0f}')
+                fig_sac = apply_iso_theme(fig_sac)
                 st.plotly_chart(fig_sac, use_container_width=True)
             else:
                 st.info("Sin registros en la tabla SAC_OM para graficar.")
@@ -387,9 +480,9 @@ if opcion == "📊 Dashboard de Dirección":
 
             # Bar chart of unique process count
             fig_auditor = px.bar(auditor_count, x='auditor_responsable', y='Total Procesos Únicos',
-                                color_discrete_sequence=['#8B5CF6'], text_auto='d')
-            fig_auditor.update_layout(plot_bgcolor='rgba(0,0,0,0)', xaxis_title='Auditor',
-                                     yaxis_title='Procesos Únicos Auditados')
+                                color_discrete_sequence=['#7C3AED'], text_auto='d')
+            fig_auditor.update_layout(xaxis_title='Auditor', yaxis_title='Procesos Únicos Auditados')
+            fig_auditor = apply_iso_theme(fig_auditor)
             st.plotly_chart(fig_auditor, use_container_width=True)
 
             # Grouped detail table by auditor
@@ -426,7 +519,8 @@ if opcion == "📊 Dashboard de Dirección":
                                      color_discrete_sequence=['#3B82F6'],
                                      labels={'Requisitos Evaluados': 'Productividad',
                                             'Conformidad': 'Conformidad (%)'})
-                fig_comp.update_layout(plot_bgcolor='rgba(0,0,0,0)', height=400)
+                fig_comp.update_layout(height=400)
+                fig_comp = apply_iso_theme(fig_comp)
                 st.plotly_chart(fig_comp, use_container_width=True)
         else:
             st.info("Sin datos de auditores para graficar.")
