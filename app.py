@@ -687,7 +687,8 @@ elif opcion == "ENTRADA":
                                         df_matriz.at[idx_row, 'observaciones'] = obs
 
                                         try:
-                                            update_gsheets("Matriz", df_matriz)
+                                            with st.spinner("Guardando cambios en Google Sheets..."):
+                                                update_gsheets("Matriz", df_matriz)
                                             st.success(f"Hallazgo #{row['id']} actualizado")
                                             st.session_state[f"modal_edit_{idx}"] = False
                                             st.session_state[f"confirm_edit_{idx}"] = False
@@ -791,7 +792,8 @@ elif opcion == "ENTRADA":
                         df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
 
                         try:
-                            update_gsheets("Matriz", df_matriz)
+                            with st.spinner("Registrando hallazgo en Google Sheets..."):
+                                update_gsheets("Matriz", df_matriz)
                             st.success("Hallazgo registrado exitosamente")
                             st.session_state["confirm_new_entrada"] = False
                             st.rerun()
@@ -845,7 +847,8 @@ elif opcion == "SEGUIMIENTO":
                             df_sac.at[idx_sac, 'estatus_la_eficacia'] = e_efic
                             df_sac.at[idx_sac, 'observaciones'] = e_obs.strip()
                             try:
-                                update_gsheets("SAC_OM", df_sac)
+                                with st.spinner("Actualizando plan en Google Sheets..."):
+                                    update_gsheets("SAC_OM", df_sac)
                                 st.success("Plan actualizado exitosamente")
                                 st.session_state["confirm_sac_update"] = False
                                 st.rerun()
@@ -906,7 +909,8 @@ elif opcion == "SEGUIMIENTO":
                         df_sac = pd.concat([df_sac, pd.DataFrame([nueva_sac])], ignore_index=True)
 
                         try:
-                            update_gsheets("SAC_OM", df_sac)
+                            with st.spinner("Registrando plan en Google Sheets..."):
+                                update_gsheets("SAC_OM", df_sac)
                             st.success("Plan registrado exitosamente")
                             st.session_state["confirm_sac_new"] = False
                             st.rerun()
@@ -970,7 +974,8 @@ elif opcion == "HORAS":
             with col_ch1:
                 if st.button("Confirmar registro", key="confirm_horas_yes", use_container_width=True):
                     try:
-                        fila = append_participacion(h_fecha, h_proceso, h_auditor, h_rol, h_horas, h_obs)
+                        with st.spinner("Registrando participación en Google Sheets..."):
+                            fila = append_participacion(h_fecha, h_proceso, h_auditor, h_rol, h_horas, h_obs)
                         st.success(f"Participación registrada: {h_auditor} | {h_rol} | {h_horas:.1f} h (fila {fila})")
                         st.session_state["confirm_horas"] = False
                         st.rerun()
