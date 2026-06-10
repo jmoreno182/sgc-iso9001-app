@@ -782,7 +782,8 @@ elif opcion == "ENTRADA":
 # ==========================================
 elif opcion == "SEGUIMIENTO":
     st.title("SEGUIMIENTO DE ACCIONES")
-    st.subheader("Estado de Acciones Correctivas")
+    st.write("Gestión de acciones correctivas y planes de mejora ISO 9001:2015")
+    st.divider()
 
     tab_s1, tab_s2 = st.tabs(["Acciones Abiertas", "Registrar Nueva"])
     
@@ -804,19 +805,19 @@ elif opcion == "SEGUIMIENTO":
                 if st.form_submit_button("Actualizar Estatus en la Nube"):
                     try:
                         if e_plan == "Cerrado" and e_efic == "Pendiente verificar":
-                            st.error("❌ No puede cerrar plan con eficacia 'Pendiente verificar'")
+                            st.error("No puede cerrar un plan con eficacia pendiente de verificar")
                         else:
                             df_sac.at[idx_sac, 'estatus_plan'] = e_plan
                             df_sac.at[idx_sac, 'estatus_la_eficacia'] = e_efic
                             df_sac.at[idx_sac, 'observaciones'] = e_obs.strip()
                             try:
                                 update_gsheets("SAC_OM", df_sac)
-                                st.success("✓ Plan actualizado en Google Sheets.")
+                                st.success("Plan actualizado exitosamente")
                                 st.rerun()
                             except Exception as e:
-                                st.error(f"❌ Error al guardar: {str(e)}")
+                                st.error(f"Error al guardar: {str(e)}")
                     except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+                        st.error(f"Error: {str(e)}")
         else:
             st.info("No hay planes de acción registrados en este momento.")
             
@@ -843,7 +844,7 @@ elif opcion == "SEGUIMIENTO":
                     validate_required(s_obs, "Detalles / Plan")
 
                     if df_sac['codigo'].isin([s_cod]).any():
-                        st.error(f"❌ Código '{s_cod}' ya existe. Use código único.")
+                        st.error(f"Código '{s_cod}' ya existe. Use código único")
                     else:
                         nuevo_id_sac = int(df_sac['id'].max() + 1) if not df_sac.empty else 1
                         nueva_sac = {
@@ -855,27 +856,28 @@ elif opcion == "SEGUIMIENTO":
 
                         try:
                             update_gsheets("SAC_OM", df_sac)
-                            st.success("✓ Plan aperturado en la nube exitosamente.")
+                            st.success("Plan registrado exitosamente")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"❌ Error al guardar: {str(e)}")
+                            st.error(f"Error al guardar: {str(e)}")
                 except ValidationError as e:
-                    st.error(f"❌ {str(e)}")
+                    st.error(f"{str(e)}")
                 except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
+                    st.error(f"Error: {str(e)}")
 
 # ==========================================
 # MÓDULO 4: REGISTRO DE HORAS DE AUDITORÍA
 # ==========================================
 elif opcion == "HORAS":
     st.title("REGISTRO DE HORAS DE AUDITORÍA")
+    st.write("Seguimiento de participación y horas de auditoría por auditor y rol")
+    st.divider()
 
     try:
         df_part, df_reporte, lista_auditores = load_horas_data()
     except Exception as e:
-        st.error(f"❌ No se pudieron cargar las hojas del módulo HORAS: {str(e)}")
-        st.info("Verifica que existan las hojas **Horas_Base_2011_2025**, **Participaciones_2026** y "
-                "**Reporte_Horas_2026** en el Google Sheet. Puedes crearlas ejecutando `python setup_horas_sheets.py`.")
+        st.error(f"No se pudieron cargar las hojas del módulo HORAS: {str(e)}")
+        st.info("Verifica que existan las hojas **Horas_Base_2011_2025**, **Participaciones_2026** y **Reporte_Horas_2026** en el Google Sheet. Ejecuta: `python setup_horas_sheets.py`")
         st.stop()
 
     tab_h1, tab_h2 = st.tabs(["Registrar Horas", "Ver Reporte"])
@@ -903,12 +905,12 @@ elif opcion == "HORAS":
                     validate_required(h_auditor, "Auditor")
                     validate_required(h_proceso, "Proceso")
                     fila = append_participacion(h_fecha, h_proceso, h_auditor, h_rol, h_horas, h_obs)
-                    st.success(f"✓ Participación registrada: {h_auditor} | {h_rol} | {h_horas:.1f} h (fila {fila})")
+                    st.success(f"Participación registrada: {h_auditor} | {h_rol} | {h_horas:.1f} h (fila {fila})")
                     st.rerun()
                 except ValidationError as e:
-                    st.error(f"❌ {str(e)}")
+                    st.error(f"{str(e)}")
                 except Exception as e:
-                    st.error(f"❌ Error al guardar: {str(e)}")
+                    st.error(f"Error al guardar: {str(e)}")
 
         st.divider()
         st.subheader("Últimas Participaciones Registradas")
@@ -978,15 +980,20 @@ elif opcion == "HORAS":
 # ==========================================
 elif opcion == "EXPORTAR":
     st.title("EXPORTACIÓN")
-    
+    st.write("Descargue respaldo completo de datos en formato Excel")
+    st.divider()
+
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df_matriz.to_excel(writer, sheet_name='Matriz de Hallazgos', index=False)
         df_sac.to_excel(writer, sheet_name='Seguimiento SAC OM', index=False)
-        
+
+    st.subheader("Respaldo de Base de Datos")
+    st.write("Descargue todos los datos registrados en un archivo Excel")
     st.download_button(
-        label="📥 Descargar Base de Datos Completa (.XLSX)",
+        label="Descargar Base de Datos Completa (XLSX)",
         data=buffer.getvalue(),
         file_name=f"Respaldo_SGC_ISO9001_{datetime.now().strftime('%Y%m%d')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True
     )
