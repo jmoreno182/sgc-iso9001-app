@@ -878,21 +878,35 @@ elif opcion == "SEGUIMIENTO":
             s_obs = st.text_area("Detalles / Plan Propuesto:")
             
             if st.form_submit_button("Registrar Apertura"):
-                try:
-                    validate_required(s_proc, "Proceso")
-                    validate_required(s_auditor, "Auditor")
-                    validate_required(s_req, "Requisito / Requisito")
-                    validate_required(s_cod, "Código SAC/OM")
-                    validate_required(s_obs, "Detalles / Plan")
+                validation_errors = []
 
-                    if df_sac['codigo'].isin([s_cod]).any():
-                        st.error(f"Código '{s_cod}' ya existe. Use código único")
-                    else:
-                        st.session_state["confirm_sac_new"] = True
+                # Validaciones de campos requeridos
+                try:
+                    validate_required(s_proc, "Proceso Responsable")
+                    validate_required(s_auditor, "Auditor Emisor")
+                    validate_required(s_req, "Requisito ISO")
+                    validate_required(s_cod, "Código SAC/OM")
+                    validate_required(s_obs, "Detalles del Plan")
                 except ValidationError as e:
-                    st.error(f"{str(e)}")
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    validation_errors.append(str(e))
+
+                # Validación de código único
+                if not validation_errors:
+                    s_cod_upper = s_cod.strip().upper()
+                    existing_codes = df_sac['codigo'].str.upper().tolist() if not df_sac.empty else []
+                    if s_cod_upper in existing_codes:
+                        validation_errors.append(f"Código '{s_cod}' ya existe en el sistema. Use un código único")
+
+                # Validación de longitud mínima del código
+                if not validation_errors and len(s_cod.strip()) < 3:
+                    validation_errors.append("Código SAC/OM debe tener al menos 3 caracteres")
+
+                # Mostrar errores o proceder
+                if validation_errors:
+                    for error in validation_errors:
+                        st.error(error)
+                else:
+                    st.session_state["confirm_sac_new"] = True
 
         if st.session_state.get("confirm_sac_new", False):
             st.warning(f"Confirmar registro de nueva acción: {s_cod}")
@@ -959,14 +973,37 @@ elif opcion == "HORAS":
             h_obs = st.text_area("Observaciones (opcional):", height=80)
 
             if st.form_submit_button("Registrar Horas"):
+                validation_errors = []
+
+                # Validaciones de campos requeridos
                 try:
                     validate_required(h_auditor, "Auditor")
                     validate_required(h_proceso, "Proceso")
-                    st.session_state["confirm_horas"] = True
                 except ValidationError as e:
-                    st.error(f"{str(e)}")
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    validation_errors.append(str(e))
+
+                # Validación de horas en rango válido
+                if not validation_errors:
+                    if h_horas < 0.1 or h_horas > 24.0:
+                        validation_errors.append("Las horas deben estar entre 0.1 y 24.0 horas")
+
+                # Validación de fecha (no puede ser en el futuro)
+                if not validation_errors:
+                    if h_fecha > datetime.now().date():
+                        validation_errors.append("La fecha de auditoría no puede ser en el futuro")
+
+                # Validación de fecha razonable (no más de 1 año atrás)
+                if not validation_errors:
+                    from datetime import timedelta
+                    if h_fecha < datetime.now().date() - timedelta(days=365):
+                        validation_errors.append("La fecha de auditoría no puede ser más de un año en el pasado")
+
+                # Mostrar errores o proceder
+                if validation_errors:
+                    for error in validation_errors:
+                        st.error(error)
+                else:
+                    st.session_state["confirm_horas"] = True
 
         if st.session_state.get("confirm_horas", False):
             st.warning(f"Confirmar registro: {h_auditor} | {h_rol} | {h_horas:.1f}h | {h_proceso}")
