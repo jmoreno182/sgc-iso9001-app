@@ -550,132 +550,275 @@ if opcion == "ANÁLISIS":
 # ==========================================
 elif opcion == "ENTRADA":
     st.title("ENTRADA DE HALLAZGOS")
-    
+
     tab1, tab2 = st.tabs(["Historial del Día", "Registrar Hallazgo"])
-    
+
     with tab1:
-        st.subheader("Hallazgos Registrados")
+        st.markdown("<h3 style='margin-top: 0;'>Hallazgos Registrados</h3>", unsafe_allow_html=True)
 
-        col_f1, col_f2 = st.columns(2)
+        # Filtros y búsqueda mejorados
+        col_search, col_sort = st.columns([2, 1])
+        with col_search:
+            search_term = st.text_input("🔍 Buscar (ID, Auditor, Evidencia):", placeholder="Ej: 001, María, ISO 7.4")
+        with col_sort:
+            sort_by = st.selectbox("Ordenar por:", ["Fecha (más reciente)", "Requisito ISO", "Auditor", "Estado"])
+
+        col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
-            filter_proc = st.multiselect("Proceso:", sorted(df_matriz['proceso_auditado'].dropna().unique()))
+            filter_proc = st.multiselect("Proceso:", sorted(df_matriz['proceso_auditado'].dropna().unique()), help="Selecciona uno o más procesos")
         with col_f2:
-            filter_auditor = st.multiselect("Auditor:", sorted(df_matriz['auditor_responsable'].dropna().unique()))
+            filter_auditor = st.multiselect("Auditor:", sorted(df_matriz['auditor_responsable'].dropna().unique()), help="Selecciona uno o más auditores")
+        with col_f3:
+            filter_status = st.multiselect("Estado:", ["Conforme", "No Conforme", "Oportunidad de mejora"], help="Selecciona estados")
 
+        # Aplicar filtros
         df_filtered_matriz = df_matriz.copy()
         if filter_proc:
             df_filtered_matriz = df_filtered_matriz[df_filtered_matriz['proceso_auditado'].isin(filter_proc)]
         if filter_auditor:
             df_filtered_matriz = df_filtered_matriz[df_filtered_matriz['auditor_responsable'].isin(filter_auditor)]
+        if filter_status:
+            df_filtered_matriz = df_filtered_matriz[df_filtered_matriz['tipo_hallazgo'].isin(filter_status)]
+
+        # Búsqueda por texto
+        if search_term:
+            search_term_lower = search_term.lower()
+            df_filtered_matriz = df_filtered_matriz[
+                df_filtered_matriz['id'].astype(str).str.contains(search_term_lower, case=False) |
+                df_filtered_matriz['auditor_responsable'].str.contains(search_term_lower, case=False, na=False) |
+                df_filtered_matriz['evidencia_objetiva'].str.contains(search_term_lower, case=False, na=False) |
+                df_filtered_matriz['requisito_iso'].astype(str).str.contains(search_term_lower, case=False)
+            ]
+
+        # Ordenamiento
+        if sort_by == "Fecha (más reciente)":
+            df_filtered_matriz = df_filtered_matriz.sort_values('fecha', ascending=False)
+        elif sort_by == "Requisito ISO":
+            df_filtered_matriz = df_filtered_matriz.sort_values('requisito_iso')
+        elif sort_by == "Auditor":
+            df_filtered_matriz = df_filtered_matriz.sort_values('auditor_responsable')
+        elif sort_by == "Estado":
+            df_filtered_matriz = df_filtered_matriz.sort_values('tipo_hallazgo')
+
+        # Indicador de resultados
+        st.markdown(f"<p style='color: #6B7280; font-size: 0.9rem; margin: 0.5rem 0;'><strong>{len(df_filtered_matriz)}</strong> hallazgo(s) encontrado(s)</p>", unsafe_allow_html=True)
 
         if df_filtered_matriz.empty:
-            st.info("Sin hallazgos para mostrar")
+            st.info("📭 Sin hallazgos que coincidan con los filtros")
         else:
+            # Renderizar tarjetas de hallazgos
             for idx, row in df_filtered_matriz.iterrows():
-                status_color = "#10B981" if row['cumplimiento'] == 'Conforme' else "#EF4444"
-                status_icon = "✓" if row['cumplimiento'] == 'Conforme' else "✗"
+                # Determinar color de estado
+                if row['cumplimiento'] == 'Conforme':
+                    status_color = "#10B981"
+                    status_bg = "#ECFDF5"
+                    status_text = "✓ Conforme"
+                elif row['tipo_hallazgo'] == 'Oportunidad de mejora':
+                    status_color = "#F59E0B"
+                    status_bg = "#FFFBEB"
+                    status_text = "⚡ Oportunidad"
+                else:
+                    status_color = "#EF4444"
+                    status_bg = "#FEF2F2"
+                    status_text = "✗ No Conforme"
 
-                with st.expander(f"#{row['id']} | {row['proceso_auditado']} | Req {row['requisito_iso']} | {row['requisito_especifico']} | {status_icon}", expanded=False):
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.write(f"**Auditor:** {row['auditor_responsable']}")
-                        st.write(f"**Fecha:** {row['fecha']}")
-                        st.write(f"**Tipo:** {row['tipo_hallazgo']}")
-                    with col2:
-                        st.write(f"**Cumplimiento:** {row['cumplimiento']}")
-                    st.write(f"**Evidencia:** {row['evidencia_objetiva']}")
-                    if row['observaciones']:
-                        st.write(f"**Observaciones:** {row['observaciones']}")
+                # Tarjeta visual con HTML personalizado
+                card_html = f"""
+                <div style='
+                    background: white;
+                    border: 1px solid #E5E7EB;
+                    border-radius: 8px;
+                    padding: 1.2rem;
+                    margin-bottom: 1rem;
+                    transition: all 0.2s ease;
+                    border-left: 4px solid {status_color};
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                '>
+                    <div style='display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;'>
+                        <div style='flex: 1;'>
+                            <div style='display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;'>
+                                <span style='font-size: 0.8rem; font-weight: 600; color: #6B7280; background: #F3F4F6; padding: 0.25rem 0.5rem; border-radius: 4px;'>ID #{row['id']}</span>
+                                <span style='font-size: 0.85rem; font-weight: 500; color: #374151;'>{row['proceso_auditado']}</span>
+                            </div>
+                            <p style='margin: 0.25rem 0; color: #6B7280; font-size: 0.85rem;'>
+                                <strong>ISO 9001:</strong> {row['requisito_iso']} | <strong>Req:</strong> {row['requisito_especifico']}
+                            </p>
+                        </div>
+                        <div style='
+                            background: {status_bg};
+                            color: {status_color};
+                            padding: 0.5rem 1rem;
+                            border-radius: 6px;
+                            font-weight: 600;
+                            font-size: 0.85rem;
+                            text-align: center;
+                            min-width: 100px;
+                            border: 1px solid {status_color};
+                        '>
+                            {status_text}
+                        </div>
+                    </div>
 
-                    st.divider()
+                    <div style='background: #F9FAFB; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.75rem;'>
+                        <p style='margin: 0; color: #374151; font-size: 0.85rem; line-height: 1.4;'>
+                            <strong>Evidencia:</strong> {str(row['evidencia_objetiva'] or '-')[:100]}{'...' if len(str(row['evidencia_objetiva'] or '')) > 100 else ''}
+                        </p>
+                    </div>
 
-                    if st.button(f"Editar hallazgo #{row['id']}", key=f"edit_hallazgo_{idx}"):
-                        st.session_state[f"editing_hallazgo_{idx}"] = True
+                    <div style='display: flex; gap: 0.5rem; font-size: 0.8rem; color: #6B7280; margin-bottom: 0.75rem;'>
+                        <span>👤 {row['auditor_responsable']}</span>
+                        <span>📅 {row['fecha']}</span>
+                        <span>🏷️ {row['tipo_hallazgo']}</span>
+                    </div>
+                </div>
+                """
+                st.markdown(card_html, unsafe_allow_html=True)
 
-                    if st.session_state.get(f"editing_hallazgo_{idx}", False):
-                        st.subheader("Editar Hallazgo")
-                        with st.form(f"form_edit_hallazgo_{idx}"):
+                # Botones de acción en fila
+                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+                with col_btn1:
+                    if st.button("✏️ Editar", key=f"btn_edit_{idx}", use_container_width=True):
+                        st.session_state[f"modal_edit_{idx}"] = True
+                with col_btn2:
+                    if st.button("👁️ Detalles", key=f"btn_details_{idx}", use_container_width=True):
+                        st.session_state[f"modal_details_{idx}"] = True
+
+                # Modal de edición
+                if st.session_state.get(f"modal_edit_{idx}", False):
+                    st.markdown("---")
+                    st.subheader(f"Editar Hallazgo #{row['id']}")
+                    with st.form(f"form_edit_hallazgo_{idx}"):
+                        col_e1, col_e2 = st.columns(2)
+                        with col_e1:
                             tipo_h = st.selectbox("Tipo de Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"],
                                                  index=0 if row['tipo_hallazgo']=='Conforme' else 1 if row['tipo_hallazgo']=='No Conforme' else 2,
                                                  key=f"tipo_{idx}")
+                        with col_e2:
                             cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"],
                                                index=0 if row['cumplimiento']=='Conforme' else 1,
                                                key=f"cump_{idx}")
-                            evid = st.text_area("Evidencia Objetiva:", value=str(row['evidencia_objetiva'] or ''), height=100, key=f"evid_{idx}")
-                            obs = st.text_area("Observaciones:", value=str(row['observaciones'] or ''), height=80, key=f"obs_{idx}")
 
-                            col_btn1, col_btn2 = st.columns(2)
-                            with col_btn1:
-                                if st.form_submit_button("Guardar Cambios"):
-                                    try:
-                                        if cump == "No Conforme" and not evid.strip():
-                                            st.error("⚠️ Evidencia requerida cuando cumplimiento es 'No Conforme'")
-                                        else:
-                                            idx_row = df_matriz[df_matriz['id'] == row['id']].index[0]
-                                            df_matriz.at[idx_row, 'tipo_hallazgo'] = tipo_h
-                                            df_matriz.at[idx_row, 'cumplimiento'] = cump
-                                            df_matriz.at[idx_row, 'evidencia_objetiva'] = evid
-                                            df_matriz.at[idx_row, 'observaciones'] = obs
+                        evid = st.text_area("Evidencia Objetiva:", value=str(row['evidencia_objetiva'] or ''), height=100, key=f"evid_{idx}")
 
-                                            try:
-                                                update_gsheets("Matriz", df_matriz)
-                                                st.success(f"✓ Hallazgo #{row['id']} actualizado")
-                                                st.session_state[f"editing_hallazgo_{row['id']}"] = False
-                                                st.rerun()
-                                            except Exception as e:
-                                                st.error(f"Error al sincronizar: {str(e)}")
-                                    except Exception as e:
-                                        st.error(f"Error: {str(e)}")
-                            with col_btn2:
-                                if st.form_submit_button("Cancelar"):
-                                    st.session_state[f"editing_hallazgo_{row['id']}"] = False
-                                    st.rerun()
+                        if cump == "No Conforme" and not evid.strip():
+                            st.warning("⚠️ La evidencia es requerida para hallazgos 'No Conforme'")
+
+                        obs = st.text_area("Observaciones:", value=str(row['observaciones'] or ''), height=80, key=f"obs_{idx}")
+
+                        col_btn1, col_btn2 = st.columns(2)
+                        with col_btn1:
+                            if st.form_submit_button("💾 Guardar Cambios", use_container_width=True):
+                                try:
+                                    if cump == "No Conforme" and not evid.strip():
+                                        st.error("⚠️ Evidencia requerida cuando cumplimiento es 'No Conforme'")
+                                    else:
+                                        idx_row = df_matriz[df_matriz['id'] == row['id']].index[0]
+                                        df_matriz.at[idx_row, 'tipo_hallazgo'] = tipo_h
+                                        df_matriz.at[idx_row, 'cumplimiento'] = cump
+                                        df_matriz.at[idx_row, 'evidencia_objetiva'] = evid
+                                        df_matriz.at[idx_row, 'observaciones'] = obs
+
+                                        try:
+                                            update_gsheets("Matriz", df_matriz)
+                                            st.success(f"✅ Hallazgo #{row['id']} actualizado exitosamente")
+                                            st.session_state[f"modal_edit_{idx}"] = False
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"Error al sincronizar: {str(e)}")
+                                except Exception as e:
+                                    st.error(f"Error: {str(e)}")
+                        with col_btn2:
+                            if st.form_submit_button("❌ Cancelar", use_container_width=True):
+                                st.session_state[f"modal_edit_{idx}"] = False
+                                st.rerun()
+
+                # Modal de detalles completos
+                if st.session_state.get(f"modal_details_{idx}", False):
+                    st.markdown("---")
+                    st.subheader(f"Detalles Completos - Hallazgo #{row['id']}")
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        st.write(f"**ID:** {row['id']}")
+                        st.write(f"**Auditor:** {row['auditor_responsable']}")
+                        st.write(f"**Fecha:** {row['fecha']}")
+                        st.write(f"**Proceso:** {row['proceso_auditado']}")
+                    with col_d2:
+                        st.write(f"**Tipo:** {row['tipo_hallazgo']}")
+                        st.write(f"**Cumplimiento:** {row['cumplimiento']}")
+                        st.write(f"**ISO 9001:** {row['requisito_iso']}")
+                        st.write(f"**Requisito Específico:** {row['requisito_especifico']}")
+
+                    st.write(f"**Requisito Interno/Legal:** {row['requisito_interno_legal'] or '—'}")
+                    st.write(f"**Evidencia Objetiva:**\n{row['evidencia_objetiva'] or '—'}")
+                    if row['observaciones']:
+                        st.write(f"**Observaciones:**\n{row['observaciones']}")
+
+                    if st.button("Cerrar detalles", key=f"close_details_{idx}"):
+                        st.session_state[f"modal_details_{idx}"] = False
+                        st.rerun()
+
+                st.markdown("")  # Espaciado
 
     with tab2:
-        st.subheader("Registrar Nuevo Hallazgo")
+        st.markdown("<h3 style='margin-top: 0;'>Registrar Nuevo Hallazgo</h3>", unsafe_allow_html=True)
         with st.form("form_nueva_fila"):
-            n_fecha = st.date_input("Fecha:", datetime.now())
-            n_proc = st.text_input("Proceso (Siglas):").upper()
-            n_auditor = st.text_input("Auditor:")
-            n_iso = st.number_input("Requisito ISO (4-10):", 4, 10, 4)
-            n_esp = st.text_input("Sub-requisito (ej. 7.1.4):")
-            n_legal = st.text_input("Requisito Interno / Legal:")
-            n_tipo = st.selectbox("Tipo Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"])
-            n_cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"])
+            col_nf1, col_nf2, col_nf3 = st.columns(3)
+            with col_nf1:
+                n_fecha = st.date_input("📅 Fecha:", datetime.now())
+            with col_nf2:
+                n_proc = st.text_input("🏢 Proceso (Siglas):").upper()
+            with col_nf3:
+                n_auditor = st.text_input("👤 Auditor:")
+
+            col_nr1, col_nr2, col_nr3 = st.columns(3)
+            with col_nr1:
+                n_iso = st.number_input("ISO 9001 (4-10):", 4, 10, 4)
+            with col_nr2:
+                n_esp = st.text_input("Sub-requisito (ej. 7.1.4):")
+            with col_nr3:
+                n_legal = st.text_input("Req. Interno/Legal:")
+
+            col_nt1, col_nt2 = st.columns(2)
+            with col_nt1:
+                n_tipo = st.selectbox("Tipo Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"])
+            with col_nt2:
+                n_cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"])
 
             if n_cump == "No Conforme":
                 st.warning("⚠️ Evidencia requerida para 'No Conforme'")
 
-            n_evid = st.text_area("Evidencia Objetiva:", height=100)
-            n_obs = st.text_area("Observaciones:", height=80)
-            
-            if st.form_submit_button("Insertar Nueva Fila"):
-                try:
-                    validate_required(n_proc, "Proceso")
-                    validate_required(n_auditor, "Auditor")
-                    validate_required(n_esp, "Sub-requisito")
-                    if n_cump == "No Conforme":
-                        validate_required(n_evid, "Evidencia (requerida si No Conforme)")
+            n_evid = st.text_area("📋 Evidencia Objetiva:", height=100, placeholder="Describe la evidencia encontrada...")
+            n_obs = st.text_area("💬 Observaciones:", height=80, placeholder="Notas adicionales (opcional)...")
 
-                    nuevo_id = int(df_matriz['id'].max() + 1) if not df_matriz.empty else 1
-                    nueva_fila = {
-                        'id': nuevo_id, 'fecha': n_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': n_proc.strip(),
-                        'auditor_responsable': n_auditor.strip(), 'requisito_iso': n_iso, 'requisito_especifico': n_esp.strip(),
-                        'requisito_interno_legal': n_legal.strip(), 'tipo_hallazgo': n_tipo, 'cumplimiento': n_cump,
-                        'evidencia_objetiva': n_evid.strip(), 'observaciones': n_obs.strip()
-                    }
-                    df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
-
+            col_submit1, col_submit2 = st.columns(2)
+            with col_submit1:
+                if st.form_submit_button("✅ Insertar Hallazgo", use_container_width=True):
                     try:
-                        update_gsheets("Matriz", df_matriz)
-                        st.success("✓ Fila añadida al Google Sheet.")
-                        st.rerun()
+                        validate_required(n_proc, "Proceso")
+                        validate_required(n_auditor, "Auditor")
+                        validate_required(n_esp, "Sub-requisito")
+                        if n_cump == "No Conforme":
+                            validate_required(n_evid, "Evidencia (requerida si No Conforme)")
+
+                        nuevo_id = int(df_matriz['id'].max() + 1) if not df_matriz.empty else 1
+                        nueva_fila = {
+                            'id': nuevo_id, 'fecha': n_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': n_proc.strip(),
+                            'auditor_responsable': n_auditor.strip(), 'requisito_iso': n_iso, 'requisito_especifico': n_esp.strip(),
+                            'requisito_interno_legal': n_legal.strip(), 'tipo_hallazgo': n_tipo, 'cumplimiento': n_cump,
+                            'evidencia_objetiva': n_evid.strip(), 'observaciones': n_obs.strip()
+                        }
+                        df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
+
+                        try:
+                            update_gsheets("Matriz", df_matriz)
+                            st.success("✅ Hallazgo registrado exitosamente.")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Error al guardar: {str(e)}")
+                    except ValidationError as e:
+                        st.error(f"❌ {str(e)}")
                     except Exception as e:
-                        st.error(f"❌ Error al guardar: {str(e)}")
-                except ValidationError as e:
-                    st.error(f"❌ {str(e)}")
-                except Exception as e:
-                    st.error(f"❌ Error: {str(e)}")
+                        st.error(f"❌ Error: {str(e)}")
 
 # ==========================================
 # MÓDULO 3: SEGUIMIENTO SAC / OM (CRUD)
