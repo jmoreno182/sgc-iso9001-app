@@ -575,7 +575,7 @@ elif opcion == "ENTRADA":
                 status_color = "#10B981" if row['cumplimiento'] == 'Conforme' else "#EF4444"
                 status_icon = "✓" if row['cumplimiento'] == 'Conforme' else "✗"
 
-                with st.expander(f"#{row['id']} | {row['proceso_auditado']} | Req {row['requisito_iso']} | {status_icon}", expanded=False):
+                with st.expander(f"#{row['id']} | {row['proceso_auditado']} | Req {row['requisito_iso']} | {row['requisito_especifico']} | {status_icon}", expanded=False):
                     col1, col2 = st.columns(2)
                     with col1:
                         st.write(f"**Auditor:** {row['auditor_responsable']}")
