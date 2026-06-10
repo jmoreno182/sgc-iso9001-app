@@ -10,6 +10,12 @@ class ValidationError(Exception):
     pass
 
 
+# Constantes del módulo HORAS
+PROCESOS_SGC = ["EV", "FP", "TR", "DR", "AC", "DD", "AA", "GI", "GM", "PB", "PP", "CO", "AS", "GP", "DI"]
+ROLES_AUDITOR = ["OB", "AF", "AD", "AL"]
+ROLES_DESCRIPCION = {"OB": "Observador", "AF": "Auditor en Formación", "AD": "Auditor Interno", "AL": "Auditor Líder"}
+
+
 def safe_int_convert(val: Any, field_name: str) -> int:
     """Convert value to int. Raise ValidationError if invalid."""
     try:
@@ -212,6 +218,75 @@ def compute_auditor_comparison(df: pd.DataFrame) -> pd.DataFrame:
     }).rename(columns={'id': 'Requisitos Evaluados', 'cumplimiento': 'Conformes'}).reset_index().rename(
         columns={'auditor_responsable': 'Auditor'}
     ).assign(Conformidad=lambda x: (x['Conformes'] / x['Requisitos Evaluados'] * 100).round(1))
+
+
+def _connect_gsheets():
+    """Open the spreadsheet using service account credentials from secrets."""
+    import gspread
+    from google.oauth2.service_account import Credentials
+    import re
+
+    sheet_url = st.secrets.get("connections", {}).get("gsheets", {}).get("spreadsheet", "")
+    if not sheet_url:
+        raise ValueError("No spreadsheet URL in secrets: connections.gsheets.spreadsheet")
+
+    sheet_id = re.search(r'/d/([a-zA-Z0-9-_]+)', sheet_url).group(1)
+
+    creds_dict = st.secrets.get("GOOGLE_SERVICE_ACCOUNT_INFO")
+    if not creds_dict:
+        raise ValueError("No GOOGLE_SERVICE_ACCOUNT_INFO in secrets")
+
+    creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+    return gspread.authorize(creds).open_by_key(sheet_id)
+
+
+def load_horas_data() -> Tuple[pd.DataFrame, pd.DataFrame, list]:
+    """Load HORAS module data: participaciones, reporte and auditor list.
+
+    Returns:
+        df_participaciones: registros 2026 (filas con fecha no vacía)
+        df_reporte: reporte agregado con totales por auditor
+        auditores: lista de nombres de la hoja base histórica
+    """
+    sh = _connect_gsheets()
+
+    # Participaciones: filas 2-1000 tienen fórmulas en A y C, filtrar por Fecha (col B)
+    raw = sh.worksheet("Participaciones_2026").get_all_values()
+    header = raw[0] if raw else []
+    rows = [r for r in raw[1:] if len(r) > 1 and str(r[1]).strip() != ""]
+    df_part = pd.DataFrame(rows, columns=header) if rows else pd.DataFrame(columns=header)
+    if not df_part.empty:
+        df_part["Horas"] = pd.to_numeric(df_part["Horas"].astype(str).str.replace(",", "."), errors="coerce").fillna(0.0)
+
+    df_rep = pd.DataFrame(sh.worksheet("Reporte_Horas_2026").get_all_records())
+
+    auditores = [a for a in sh.worksheet("Horas_Base_2011_2025").col_values(1)[1:] if str(a).strip()]
+
+    return df_part, df_rep, auditores
+
+
+def append_participacion(fecha, proceso: str, auditor: str, rol: str, horas: float, observaciones: str = "") -> int:
+    """Append one participation row to Participaciones_2026.
+
+    Writes only columns B (Fecha), D-H; columns A (ID) and C (Período)
+    are auto-calculated by sheet formulas. Returns the row number written.
+    """
+    if not (0 < float(horas) <= 24):
+        raise ValidationError("Horas debe estar entre 0.1 y 24.0")
+
+    sh = _connect_gsheets()
+    ws = sh.worksheet("Participaciones_2026")
+
+    # Primera fila libre = última fila con Fecha (col B) + 1
+    next_row = len(ws.col_values(2)) + 1
+
+    fecha_str = fecha.strftime("%Y-%m-%d") if hasattr(fecha, "strftime") else str(fecha)
+    ws.batch_update([
+        {"range": f"B{next_row}", "values": [[fecha_str]]},
+        {"range": f"D{next_row}:H{next_row}",
+         "values": [[proceso, auditor, rol, float(horas), observaciones.strip()]]},
+    ], value_input_option="USER_ENTERED")
+    return next_row
 
 
 def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:

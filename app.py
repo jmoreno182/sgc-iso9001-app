@@ -22,6 +22,11 @@ from utils import (
     compute_auditor_stats,
     compute_conformidad_trend,
     compute_auditor_comparison,
+    load_horas_data,
+    append_participacion,
+    PROCESOS_SGC,
+    ROLES_AUDITOR,
+    ROLES_DESCRIPCION,
 )
 
 # ==========================================
@@ -329,7 +334,7 @@ st.markdown("""
 if "modulo" not in st.session_state:
     st.session_state.modulo = "ENTRADA"
 
-col1, col2, col3 = st.columns(3, gap="small")
+col1, col2, col3, col4 = st.columns(4, gap="small")
 with col1:
     if st.button("ENTRADA", key="nav_entrada", use_container_width=True):
         st.session_state.modulo = "ENTRADA"
@@ -337,6 +342,9 @@ with col2:
     if st.button("SEGUIMIENTO", key="nav_seguimiento", use_container_width=True):
         st.session_state.modulo = "SEGUIMIENTO"
 with col3:
+    if st.button("HORAS", key="nav_horas", use_container_width=True):
+        st.session_state.modulo = "HORAS"
+with col4:
     if st.button("ANÁLISIS", key="nav_analisis", use_container_width=True):
         st.session_state.modulo = "ANÁLISIS"
 
@@ -755,7 +763,116 @@ elif opcion == "SEGUIMIENTO":
                     st.error(f"❌ Error: {str(e)}")
 
 # ==========================================
-# MÓDULO 4: EXPORTAR RESPALDO LOCAL
+# MÓDULO 4: REGISTRO DE HORAS DE AUDITORÍA
+# ==========================================
+elif opcion == "HORAS":
+    st.title("REGISTRO DE HORAS DE AUDITORÍA")
+
+    try:
+        df_part, df_reporte, lista_auditores = load_horas_data()
+    except Exception as e:
+        st.error(f"❌ No se pudieron cargar las hojas del módulo HORAS: {str(e)}")
+        st.info("Verifica que existan las hojas **Horas_Base_2011_2025**, **Participaciones_2026** y "
+                "**Reporte_Horas_2026** en el Google Sheet. Puedes crearlas ejecutando `python setup_horas_sheets.py`.")
+        st.stop()
+
+    tab_h1, tab_h2 = st.tabs(["Registrar Horas", "Ver Reporte"])
+
+    # --- TAB 1: REGISTRAR PARTICIPACIÓN ---
+    with tab_h1:
+        st.subheader("Registrar Participación en Auditoría")
+
+        with st.form("form_registrar_horas"):
+            ch1, ch2 = st.columns(2)
+            with ch1:
+                h_fecha = st.date_input("Fecha de la auditoría:", datetime.now())
+                h_proceso = st.selectbox("Proceso auditado:", PROCESOS_SGC)
+                h_auditor = st.selectbox("Auditor:", lista_auditores)
+            with ch2:
+                h_rol = st.selectbox(
+                    "Rol desempeñado:", ROLES_AUDITOR,
+                    format_func=lambda r: f"{r} — {ROLES_DESCRIPCION[r]}"
+                )
+                h_horas = st.number_input("Horas:", min_value=0.1, max_value=24.0, value=8.0, step=0.5, format="%.1f")
+            h_obs = st.text_area("Observaciones (opcional):", height=80)
+
+            if st.form_submit_button("Registrar Horas"):
+                try:
+                    validate_required(h_auditor, "Auditor")
+                    validate_required(h_proceso, "Proceso")
+                    fila = append_participacion(h_fecha, h_proceso, h_auditor, h_rol, h_horas, h_obs)
+                    st.success(f"✓ Participación registrada: {h_auditor} | {h_rol} | {h_horas:.1f} h (fila {fila})")
+                    st.rerun()
+                except ValidationError as e:
+                    st.error(f"❌ {str(e)}")
+                except Exception as e:
+                    st.error(f"❌ Error al guardar: {str(e)}")
+
+        st.divider()
+        st.subheader("Últimas Participaciones Registradas")
+        if df_part.empty:
+            st.info("Aún no hay participaciones registradas en 2026.")
+        else:
+            st.dataframe(df_part.tail(15).iloc[::-1], use_container_width=True, hide_index=True)
+
+    # --- TAB 2: REPORTE ACUMULADO ---
+    with tab_h2:
+        st.subheader("Reporte de Horas Acumuladas")
+
+        if df_reporte.empty:
+            st.info("El reporte está vacío. Verifica la hoja Reporte_Horas_2026.")
+        else:
+            df_rep = df_reporte.copy()
+            cols_num = [c for c in df_rep.columns if c != "Auditor"]
+            for c in cols_num:
+                df_rep[c] = pd.to_numeric(df_rep[c].astype(str).str.replace(",", "."), errors="coerce").fillna(0)
+
+            horas_2026 = df_rep[["OB_2026", "AF_2026", "AD_2026", "AL_2026"]].sum().sum()
+            participaciones = len(df_part)
+            activos = df_part["Auditor"].nunique() if not df_part.empty else 0
+
+            k1, k2, k3 = st.columns(3, gap="medium")
+            with k1:
+                st.markdown(f"<div class='metric-card'><h3>Horas 2026</h3><h2>{horas_2026:.1f}</h2><p>Total registradas este año</p></div>", unsafe_allow_html=True)
+            with k2:
+                st.markdown(f"<div class='metric-card'><h3>Participaciones</h3><h2>{participaciones}</h2><p>Registros en 2026</p></div>", unsafe_allow_html=True)
+            with k3:
+                st.markdown(f"<div class='metric-card'><h3>Auditores Activos</h3><h2>{activos}</h2><p>Con horas en 2026</p></div>", unsafe_allow_html=True)
+
+            st.divider()
+
+            st.write("**Tabla de Horas por Auditor** (2026 + acumulado histórico)")
+            st.dataframe(df_rep, use_container_width=True, hide_index=True)
+
+            # Gráfico: total acumulado por auditor y rol
+            df_chart = df_rep[["Auditor", "OB_Total", "AF_Total", "AD_Total", "AL_Total"]].melt(
+                id_vars="Auditor", var_name="Rol", value_name="Horas"
+            )
+            df_chart["Rol"] = df_chart["Rol"].str.replace("_Total", "")
+            fig_horas = px.bar(
+                df_chart, x="Auditor", y="Horas", color="Rol", barmode="stack",
+                color_discrete_map={"OB": "#9CA3AF", "AF": "#F59E0B", "AD": "#3B82F6", "AL": "#10B981"},
+                title="Horas Acumuladas Totales por Auditor y Rol",
+            )
+            fig_horas = apply_iso_theme(fig_horas)
+            fig_horas.update_layout(xaxis_tickangle=-45, height=500)
+            st.plotly_chart(fig_horas, use_container_width=True)
+
+            # Exportar reporte a Excel
+            buffer_h = io.BytesIO()
+            with pd.ExcelWriter(buffer_h, engine='openpyxl') as writer:
+                df_rep.to_excel(writer, sheet_name='Reporte Horas', index=False)
+                if not df_part.empty:
+                    df_part.to_excel(writer, sheet_name='Participaciones 2026', index=False)
+            st.download_button(
+                label="📥 Descargar Reporte de Horas (.XLSX)",
+                data=buffer_h.getvalue(),
+                file_name=f"Reporte_Horas_Auditoria_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+# ==========================================
+# MÓDULO 5: EXPORTAR RESPALDO LOCAL
 # ==========================================
 elif opcion == "EXPORTAR":
     st.title("EXPORTACIÓN")

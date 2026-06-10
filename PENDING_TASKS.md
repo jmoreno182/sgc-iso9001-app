@@ -1,8 +1,15 @@
 # Tareas Pendientes - HORAS Module Implementation
 
-**Status:** In Progress  
+**Status:** Code complete — pending: run `setup_horas_sheets.py` + final verification  
 **Date Created:** 2026-06-09  
-**Target Completion:** Before implementation of code tasks
+**Last Updated:** 2026-06-10
+
+> **2026-06-10 — Automatización:** Las tareas 1-3 (Google Sheets) fueron automatizadas
+> en el script `setup_horas_sheets.py` (raíz del repo). Los datos de los 22 auditores ya
+> fueron extraídos del PDF usando las columnas **"Total de Horas Acumuladas"** (incluye
+> Dic 2025, decisión confirmada por José el 2026-06-10) + Sara Rabelo en cero.
+> Ejecutar: `venv\Scripts\python setup_horas_sheets.py` (usa `--force` para recrear).
+> Las tareas de código 4-8 ya están implementadas en `app.py` y `utils.py`.
 
 ---
 
@@ -239,13 +246,13 @@ Set up the aggregated report sheet with formulas that auto-calculate totals from
 
 Tasks 4-10 are code-based and will be handled by subagents after these 3 Google Sheets tasks are complete.
 
-- [ ] Task 4: Add HORAS Module to Streamlit - Navigation & Imports
-- [ ] Task 5: Add HORAS Module - Tab 1 (Registrar Horas)
-- [ ] Task 6: Add HORAS Module - Tab 2 (Ver Reporte)
-- [ ] Task 7: Add Google Sheets I/O Functions to utils.py
-- [ ] Task 8: Wire Functions to HORAS Module UI
-- [ ] Task 9: Testing & Validation
-- [ ] Task 10: Final Integration & Documentation
+- [x] Task 4: Add HORAS Module to Streamlit - Navigation & Imports ✅ 2026-06-10
+- [x] Task 5: Add HORAS Module - Tab 1 (Registrar Horas) ✅ 2026-06-10
+- [x] Task 6: Add HORAS Module - Tab 2 (Ver Reporte) ✅ 2026-06-10
+- [x] Task 7: Add Google Sheets I/O Functions to utils.py (`load_horas_data`, `append_participacion`) ✅ 2026-06-10
+- [x] Task 8: Wire Functions to HORAS Module UI ✅ 2026-06-10
+- [ ] Task 9: Testing & Validation (pendiente: requiere hojas creadas — ejecutar setup_horas_sheets.py)
+- [x] Task 10: Final Integration & Documentation (CLAUDE.md actualizado) ✅ 2026-06-10
 
 ---
 
