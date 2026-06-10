@@ -601,13 +601,15 @@ elif opcion == "ENTRADA":
             st.info("No hay hallazgos que coincidan con los criterios de búsqueda")
         else:
             for idx, row in df_filtered_matriz.iterrows():
-                # Estado
-                if row['cumplimiento'] == 'Conforme':
+                # Estado - prioridad correcta
+                if not row['cumplimiento'] or str(row['cumplimiento']).strip() == '':
+                    status_text = "Pendiente"
+                elif row['cumplimiento'] == 'Conforme':
                     status_text = "Conforme"
-                elif row['tipo_hallazgo'] == 'Oportunidad de mejora':
-                    status_text = "Oportunidad"
-                else:
+                elif row['cumplimiento'] == 'No Conforme':
                     status_text = "No Conforme"
+                else:
+                    status_text = "Pendiente"
 
                 with st.container(border=True):
                     col1, col2 = st.columns([3, 1])
@@ -645,8 +647,12 @@ elif opcion == "ENTRADA":
                                                  index=0 if row['tipo_hallazgo']=='Conforme' else 1 if row['tipo_hallazgo']=='No Conforme' else 2,
                                                  key=f"tipo_{idx}")
                         with col_e2:
+                            # Determinar index correcto para cumplimiento (vacío = 0 para Conforme como default)
+                            cump_index = 0
+                            if row['cumplimiento'] == 'No Conforme':
+                                cump_index = 1
                             cump = st.selectbox("Cumplimiento", ["Conforme", "No Conforme"],
-                                               index=0 if row['cumplimiento']=='Conforme' else 1,
+                                               index=cump_index,
                                                key=f"cump_{idx}")
 
                         evid = st.text_area("Evidencia Objetiva", value=str(row['evidencia_objetiva'] or ''), height=100, key=f"evid_{idx}")
