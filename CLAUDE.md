@@ -122,6 +122,95 @@ The three main worksheets operate independently:
 - **SAC_OM** — Corrective/preventive actions: ISO requirement, action code, status, efficacy tracking
 - **HORAS** — Auditor hours: participation log, role, hours per audit type (OB/AF/AD/AL), annual report
 
+## User Experience & Interface Design
+
+### Visual Design & Aesthetics
+
+The app implements a professional, institutional design system:
+
+- **Color Palette**: Blue tonalities only (light blue `#E8F1F9` to dark blue `#1A3A52`), grays for text and borders
+- **Typography**: Roboto font throughout for consistency
+- **Layout**: Symmetric, ordered, grid-based structure with proper spacing
+- **Styling**: Native Streamlit components (no complex HTML/CSS) for reliability and maintainability
+- **Decoration**: Zero emojis or playful elements — purely functional and clean
+
+All modules follow this design consistently, including Dashboard, ENTRADA, SEGUIMIENTO, HORAS, and EXPORTAR.
+
+### Interaction Features
+
+#### Save Confirmations
+
+All data modification operations require user confirmation before persisting to Google Sheets:
+
+- **ENTRADA**: Confirm when editing or registering hallazgos
+- **SEGUIMIENTO**: Confirm when updating plan status or registering new actions
+- **HORAS**: Confirm when registering auditor participation
+
+Implementation: Session state tracks confirmation dialogs. User sees operation details before committing.
+
+#### Loading Indicators
+
+Google Sheets synchronization operations show visual feedback via `st.spinner()`:
+
+- "Guardando cambios en Google Sheets..." — during edit operations
+- "Registrando hallazgo en Google Sheets..." — during new record creation
+- "Actualizando plan en Google Sheets..." — during status updates
+- "Registrando participación en Google Sheets..." — during participation logging
+
+This improves perceived responsiveness and prevents user anxiety during network operations.
+
+#### Robust Input Validation
+
+Each module validates user input before confirmation:
+
+**ENTRADA**:
+- Required field checks (proceso, auditor, requisito específico)
+- Conditional validation: if `cumplimiento == "No Conforme"`, require evidencia_objetiva
+
+**SEGUIMIENTO**:
+- Required field checks (all fields mandatory)
+- Código uniqueness check (case-insensitive)
+- Código minimum length validation (≥3 characters)
+- Multiple errors collected and displayed together
+
+**HORAS**:
+- Required field checks (auditor, process)
+- Hours range validation (0.1 ≤ horas ≤ 24.0)
+- Date validation: no future dates
+- Reasonable date range: no more than 1 year in past
+- Multiple validation errors shown together
+
+Validation errors prevent form submission; users must correct all issues before confirmation.
+
+#### Search & Filtering
+
+All data-viewing modules support text search and filtering:
+
+**ENTRADA (Historial)**: 
+- Search by auditor, process, or requirement (case-insensitive)
+- Results counter showing matches
+- Collapsible search section
+
+**SEGUIMIENTO (Acciones Abiertas)**:
+- Search by código, process, or auditor (case-insensitive)
+- Status filter dropdown: Todos, Abierto, Cerrado
+- Results counter
+- Graceful empty state messaging
+
+**HORAS (Reporte)**:
+- Search by auditor name (case-insensitive)
+- Dynamic table filtering
+- Chart adapts to filtered data
+- Full dataset available for export (unfiltered)
+
+Search is case-insensitive and updates results in real-time as users type.
+
+### Status Display Logic
+
+Empty compliance fields (`cumplimiento == null or empty`) now correctly display as "Pendiente" instead of "No Conforme". This reflects the actual state of unclassified findings and prevents false negatives in reporting.
+
+Implementation: Priority-based status determination checks empty/null first, then matches specific values.
+
 ## Troubleshooting
 
 ### Google Sheets Credentials Issues
@@ -177,6 +266,36 @@ The repo includes utility scripts for capturing app screenshots (not part of cor
 - `take_screenshot.py` — Additional screenshot helper
 
 These are development/documentation tools and not required for running the app.
+
+## Recent Improvements (June 2026)
+
+### UI/UX Enhancements
+
+**Institutional Design System**:
+- Implemented professional blue-gray color palette across all modules
+- Removed all decorative elements (emojis) for cleaner, institutional appearance
+- Consistent typography (Roboto) and symmetric layouts
+- Improved form grouping and visual hierarchy
+
+**Data Integrity & User Safety**:
+- Added confirmation dialogs before all save operations (prevents accidental data loss)
+- Implemented loading spinners during Google Sheets synchronization
+- Fixed status display bug where empty `cumplimiento` fields showed as "No Conforme" (now shows "Pendiente")
+
+**User Feedback & Discoverability**:
+- Added comprehensive input validation with specific error messages
+- Implemented search functionality in SEGUIMIENTO and HORAS modules (matching ENTRADA)
+- Added results counters and empty state messaging for better feedback
+- Improved form error handling to show multiple validation issues at once
+
+**Code Quality**:
+- Simplified overly complex HTML/CSS styling to use native Streamlit components for better reliability
+- Standardized error message formatting across all modules (removed emoji prefixes)
+- Consistent validation patterns across ENTRADA, SEGUIMIENTO, HORAS modules
+
+### Technical Details
+
+All changes maintain backward compatibility with existing Google Sheets data and workflows. No schema changes required. Session state management improved for modal dialogs and search filtering.
 
 ## Additional Documentation
 
