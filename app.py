@@ -549,253 +549,25 @@ if opcion == "ANÁLISIS":
 # MÓDULO 2: MATRIZ DE HALLAZGOS (CRUD)
 # ==========================================
 elif opcion == "ENTRADA":
-    # Estilos institucionales con paleta azul
-    st.markdown("""
-    <style>
-        * { font-family: 'Roboto', sans-serif; }
-
-        .header-section {
-            background: linear-gradient(135deg, #1A3A52 0%, #3D5A80 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            margin-bottom: 2rem;
-        }
-        .header-section h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-        }
-        .header-section p {
-            margin: 0.5rem 0 0 0;
-            font-size: 13px;
-            opacity: 0.9;
-        }
-
-        .filter-container {
-            background: #F9FAFB;
-            padding: 1.5rem;
-            border: 1px solid #D1D5DB;
-            border-radius: 0.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .filter-label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #6B7280;
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.5px;
-        }
-
-        .hallazgo-card {
-            background: white;
-            border: 1px solid #D1D5DB;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            transition: all 0.2s ease;
-        }
-        .hallazgo-card:hover {
-            border-color: #3D5A80;
-            box-shadow: 0 2px 8px rgba(26, 58, 82, 0.08);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #E5E7EB;
-        }
-
-        .card-id {
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            font-weight: 700;
-            color: #1A3A52;
-            background: #E8F1F9;
-            padding: 0.4rem 0.8rem;
-            border-radius: 0.3rem;
-            display: inline-block;
-        }
-
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: #1F2937;
-            margin: 0.5rem 0 0 0;
-        }
-
-        .card-subtitle {
-            font-size: 12px;
-            color: #6B7280;
-            margin: 0.3rem 0 0 0;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 0.5rem 1rem;
-            border-radius: 0.3rem;
-        }
-        .status-conforme {
-            background: #ECFDF5;
-            color: #047857;
-            border: 1px solid #10B981;
-        }
-        .status-no-conforme {
-            background: #FEF2F2;
-            color: #DC2626;
-            border: 1px solid #FCA5A5;
-        }
-        .status-oportunidad {
-            background: #FFFBEB;
-            color: #B45309;
-            border: 1px solid #FCD34D;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-        }
-
-        .card-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .content-block {
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .content-label {
-            font-weight: 600;
-            color: #1F2937;
-            display: block;
-            margin-bottom: 0.3rem;
-        }
-
-        .content-value {
-            color: #6B7280;
-        }
-
-        .evidence-box {
-            background: #F9FAFB;
-            border-left: 3px solid #3D5A80;
-            padding: 0.75rem 1rem;
-            border-radius: 0.3rem;
-            font-size: 12px;
-            line-height: 1.5;
-            color: #374151;
-            margin-bottom: 1rem;
-        }
-
-        .card-footer {
-            display: flex;
-            gap: 0.5rem;
-            font-size: 11px;
-            color: #9CA3AF;
-            padding-top: 1rem;
-            border-top: 1px solid #E5E7EB;
-        }
-
-        .form-section {
-            background: #F9FAFB;
-            border: 1px solid #D1D5DB;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .form-section-title {
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #1A3A52;
-            margin-bottom: 1rem;
-            letter-spacing: 0.5px;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid #E8F1F9;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .results-info {
-            font-size: 13px;
-            color: #6B7280;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-        }
-        .results-count {
-            color: #1A3A52;
-            font-weight: 700;
-        }
-
-        .empty-state {
-            background: #F3F4F6;
-            border: 1px solid #D1D5DB;
-            border-radius: 0.5rem;
-            padding: 2rem;
-            text-align: center;
-            color: #6B7280;
-            font-size: 14px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown("""
-    <div class='header-section'>
-        <h1>ENTRADA DE HALLAZGOS</h1>
-        <p>Registro y seguimiento de hallazgos de auditoría interna ISO 9001:2015</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.title("ENTRADA DE HALLAZGOS")
+    st.write("Registro y seguimiento de hallazgos de auditoría interna ISO 9001:2015")
+    st.divider()
 
     tab1, tab2 = st.tabs(["Historial del Día", "Registrar Hallazgo"])
 
     with tab1:
-        # Filtros
-        st.markdown("""<div class='filter-container'>""", unsafe_allow_html=True)
-        st.markdown("""<label class='filter-label'>Búsqueda</label>""", unsafe_allow_html=True)
-        search_term = st.text_input("", placeholder="Buscar por ID, Auditor, Evidencia o Requisito ISO...", key="search_entrada", label_visibility="collapsed")
+        st.subheader("Búsqueda y Filtros")
+        search_term = st.text_input("Búsqueda", placeholder="ID, Auditor, Evidencia o ISO...", key="search_entrada")
 
-        col_f1, col_f2, col_f3 = st.columns(3)
+        col_f1, col_f2, col_f3, col_f4 = st.columns(4)
         with col_f1:
-            st.markdown("""<label class='filter-label'>Proceso</label>""", unsafe_allow_html=True)
-            filter_proc = st.multiselect("", sorted(df_matriz['proceso_auditado'].dropna().unique()), key="proc_entrada", label_visibility="collapsed")
+            filter_proc = st.multiselect("Proceso", sorted(df_matriz['proceso_auditado'].dropna().unique()), key="proc_entrada")
         with col_f2:
-            st.markdown("""<label class='filter-label'>Auditor</label>""", unsafe_allow_html=True)
-            filter_auditor = st.multiselect("", sorted(df_matriz['auditor_responsable'].dropna().unique()), key="aud_entrada", label_visibility="collapsed")
+            filter_auditor = st.multiselect("Auditor", sorted(df_matriz['auditor_responsable'].dropna().unique()), key="aud_entrada")
         with col_f3:
-            st.markdown("""<label class='filter-label'>Tipo</label>""", unsafe_allow_html=True)
-            filter_status = st.multiselect("", ["Conforme", "No Conforme", "Oportunidad de mejora"], key="status_entrada", label_visibility="collapsed")
-
-        col_sort1, col_sort2 = st.columns([1, 3])
-        with col_sort1:
-            st.markdown("""<label class='filter-label'>Ordenar</label>""", unsafe_allow_html=True)
-            sort_by = st.selectbox("", ["Fecha (desc)", "ISO", "Auditor"], key="sort_entrada", label_visibility="collapsed")
-        with col_sort2:
-            st.markdown("""<label class='filter-label'>&nbsp;</label>""", unsafe_allow_html=True)
-            st.markdown("""<div style='height: 38px;'></div>""", unsafe_allow_html=True)
-
-        st.markdown("""</div>""", unsafe_allow_html=True)
+            filter_status = st.multiselect("Tipo", ["Conforme", "No Conforme", "Oportunidad de mejora"], key="status_entrada")
+        with col_f4:
+            sort_by = st.selectbox("Ordenar por", ["Fecha (desc)", "ISO", "Auditor"], key="sort_entrada")
 
         # Aplicar filtros
         df_filtered_matriz = df_matriz.copy()
@@ -823,77 +595,39 @@ elif opcion == "ENTRADA":
         elif sort_by == "Auditor":
             df_filtered_matriz = df_filtered_matriz.sort_values('auditor_responsable')
 
-        # Indicador de resultados
-        st.markdown(f"""<div class='results-info'>
-            Se encontraron <span class='results-count'>{len(df_filtered_matriz)}</span> hallazgo(s)
-        </div>""", unsafe_allow_html=True)
+        st.write(f"**{len(df_filtered_matriz)}** hallazgo(s) encontrado(s)")
 
         if df_filtered_matriz.empty:
-            st.markdown("""<div class='empty-state'>
-                No hay hallazgos que coincidan con los criterios de búsqueda
-            </div>""", unsafe_allow_html=True)
+            st.info("No hay hallazgos que coincidan con los criterios de búsqueda")
         else:
             for idx, row in df_filtered_matriz.iterrows():
-                # Determinar estado
+                # Estado
                 if row['cumplimiento'] == 'Conforme':
-                    status_class = "status-conforme"
                     status_text = "Conforme"
-                    status_color = "#047857"
                 elif row['tipo_hallazgo'] == 'Oportunidad de mejora':
-                    status_class = "status-oportunidad"
                     status_text = "Oportunidad"
-                    status_color = "#B45309"
                 else:
-                    status_class = "status-no-conforme"
                     status_text = "No Conforme"
-                    status_color = "#DC2626"
 
-                card_html = f"""
-                <div class='hallazgo-card'>
-                    <div class='card-header'>
-                        <div>
-                            <span class='card-id'>#{row['id']}</span>
-                            <div class='card-title'>{row['proceso_auditado']}</div>
-                            <div class='card-subtitle'>ISO 9001 - Requisito {row['requisito_iso']}</div>
-                        </div>
-                        <div class='status-indicator {status_class}'>
-                            <span class='status-dot' style='background: {status_color};'></span>
-                            {status_text}
-                        </div>
-                    </div>
+                with st.container(border=True):
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        st.write(f"**ID #{row['id']}** | {row['proceso_auditado']} | ISO {row['requisito_iso']}")
+                        st.write(f"Requisito específico: {row['requisito_especifico']}")
+                    with col2:
+                        st.write(f"**{status_text}**")
 
-                    <div class='card-content'>
-                        <div class='content-block'>
-                            <span class='content-label'>Auditor Responsable</span>
-                            <span class='content-value'>{row['auditor_responsable']}</span>
-                        </div>
-                        <div class='content-block'>
-                            <span class='content-label'>Fecha de Registro</span>
-                            <span class='content-value'>{row['fecha']}</span>
-                        </div>
-                        <div class='content-block'>
-                            <span class='content-label'>Requisito Específico</span>
-                            <span class='content-value'>{row['requisito_especifico']}</span>
-                        </div>
-                        <div class='content-block'>
-                            <span class='content-label'>Tipo de Hallazgo</span>
-                            <span class='content-value'>{row['tipo_hallazgo']}</span>
-                        </div>
-                    </div>
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write(f"**Auditor:** {row['auditor_responsable']}")
+                        st.write(f"**Fecha:** {row['fecha']}")
+                    with col2:
+                        st.write(f"**Tipo:** {row['tipo_hallazgo']}")
+                        st.write(f"**Cumplimiento:** {row['cumplimiento']}")
 
-                    <div class='evidence-box'>
-                        <strong>Evidencia Objetiva:</strong><br>
-                        {str(row['evidencia_objetiva'] or '-')[:200]}{'...' if len(str(row['evidencia_objetiva'] or '')) > 200 else ''}
-                    </div>
+                    st.write(f"**Evidencia:** {str(row['evidencia_objetiva'] or '-')[:150]}{'...' if len(str(row['evidencia_objetiva'] or '')) > 150 else ''}")
 
-                    <div class='card-footer'>
-                        Requisito interno/legal: {row['requisito_interno_legal'] or 'No especificado'}
-                    </div>
-                </div>
-                """
-                st.markdown(card_html, unsafe_allow_html=True)
-
-                col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 2])
+                col_btn1, col_btn2 = st.columns(2)
                 with col_btn1:
                     if st.button("Editar", key=f"btn_edit_{idx}", use_container_width=True):
                         st.session_state[f"modal_edit_{idx}"] = True
@@ -901,10 +635,9 @@ elif opcion == "ENTRADA":
                     if st.button("Detalles", key=f"btn_details_{idx}", use_container_width=True):
                         st.session_state[f"modal_details_{idx}"] = True
 
-                # Modal de edición
                 if st.session_state.get(f"modal_edit_{idx}", False):
-                    st.markdown("---")
-                    st.markdown(f"""<h3 style='color: #1A3A52; margin-top: 0;'>Editar Hallazgo #{row['id']}</h3>""", unsafe_allow_html=True)
+                    st.divider()
+                    st.subheader(f"Editar Hallazgo #{row['id']}")
                     with st.form(f"form_edit_hallazgo_{idx}"):
                         col_e1, col_e2 = st.columns(2)
                         with col_e1:
@@ -938,11 +671,11 @@ elif opcion == "ENTRADA":
 
                                         try:
                                             update_gsheets("Matriz", df_matriz)
-                                            st.success(f"Hallazgo #{row['id']} actualizado exitosamente")
+                                            st.success(f"Hallazgo #{row['id']} actualizado")
                                             st.session_state[f"modal_edit_{idx}"] = False
                                             st.rerun()
                                         except Exception as e:
-                                            st.error(f"Error al sincronizar: {str(e)}")
+                                            st.error(f"Error: {str(e)}")
                                 except Exception as e:
                                     st.error(f"Error: {str(e)}")
                         with col_btn2:
@@ -950,13 +683,9 @@ elif opcion == "ENTRADA":
                                 st.session_state[f"modal_edit_{idx}"] = False
                                 st.rerun()
 
-                # Modal de detalles
                 if st.session_state.get(f"modal_details_{idx}", False):
-                    st.markdown("---")
-                    st.markdown(f"""<h3 style='color: #1A3A52; margin-top: 0;'>Detalles Completos - Hallazgo #{row['id']}</h3>""", unsafe_allow_html=True)
-
-                    st.markdown("""<div class='form-section'>""", unsafe_allow_html=True)
-                    st.markdown("""<div class='form-section-title'>Información General</div>""", unsafe_allow_html=True)
+                    st.divider()
+                    st.subheader(f"Detalles - Hallazgo #{row['id']}")
                     col_d1, col_d2 = st.columns(2)
                     with col_d1:
                         st.write(f"**ID:** {row['id']}")
@@ -966,32 +695,23 @@ elif opcion == "ENTRADA":
                         st.write(f"**Proceso:** {row['proceso_auditado']}")
                         st.write(f"**Tipo:** {row['tipo_hallazgo']}")
                         st.write(f"**Cumplimiento:** {row['cumplimiento']}")
-                    st.markdown("""</div>""", unsafe_allow_html=True)
 
-                    st.markdown("""<div class='form-section'>""", unsafe_allow_html=True)
-                    st.markdown("""<div class='form-section-title'>Requisitos</div>""", unsafe_allow_html=True)
                     st.write(f"**ISO 9001:** Requisito {row['requisito_iso']}")
                     st.write(f"**Específico:** {row['requisito_especifico']}")
                     st.write(f"**Interno/Legal:** {row['requisito_interno_legal'] or '—'}")
-                    st.markdown("""</div>""", unsafe_allow_html=True)
-
-                    st.markdown("""<div class='form-section'>""", unsafe_allow_html=True)
-                    st.markdown("""<div class='form-section-title'>Evidencia y Observaciones</div>""", unsafe_allow_html=True)
-                    st.write(f"**Evidencia Objetiva:**\n{row['evidencia_objetiva'] or '—'}")
+                    st.write(f"**Evidencia:**\n{row['evidencia_objetiva'] or '—'}")
                     if row['observaciones']:
                         st.write(f"**Observaciones:**\n{row['observaciones']}")
-                    st.markdown("""</div>""", unsafe_allow_html=True)
 
-                    if st.button("Cerrar detalles", key=f"close_details_{idx}"):
+                    if st.button("Cerrar", key=f"close_details_{idx}"):
                         st.session_state[f"modal_details_{idx}"] = False
                         st.rerun()
 
     with tab2:
-        st.markdown("""<h3 style='color: #1A3A52; margin-top: 0;'>Registrar Nuevo Hallazgo</h3>""", unsafe_allow_html=True)
+        st.subheader("Registrar Nuevo Hallazgo")
 
         with st.form("form_nueva_fila"):
-            st.markdown("""<div class='form-section'>
-                <div class='form-section-title'>Información Básica</div>""", unsafe_allow_html=True)
+            st.write("**Información Básica**")
             col_nf1, col_nf2, col_nf3 = st.columns(3)
             with col_nf1:
                 n_fecha = st.date_input("Fecha", datetime.now())
@@ -999,10 +719,8 @@ elif opcion == "ENTRADA":
                 n_proc = st.text_input("Proceso (Siglas)").upper()
             with col_nf3:
                 n_auditor = st.text_input("Auditor Responsable")
-            st.markdown("""</div>""", unsafe_allow_html=True)
 
-            st.markdown("""<div class='form-section'>
-                <div class='form-section-title'>Requisitos</div>""", unsafe_allow_html=True)
+            st.write("**Requisitos**")
             col_nr1, col_nr2, col_nr3 = st.columns(3)
             with col_nr1:
                 n_iso = st.number_input("ISO 9001 (4-10)", 4, 10, 4)
@@ -1010,10 +728,8 @@ elif opcion == "ENTRADA":
                 n_esp = st.text_input("Sub-requisito (ej. 7.1.4)")
             with col_nr3:
                 n_legal = st.text_input("Requisito Interno/Legal")
-            st.markdown("""</div>""", unsafe_allow_html=True)
 
-            st.markdown("""<div class='form-section'>
-                <div class='form-section-title'>Clasificación</div>""", unsafe_allow_html=True)
+            st.write("**Clasificación**")
             col_nt1, col_nt2 = st.columns(2)
             with col_nt1:
                 n_tipo = st.selectbox("Tipo Hallazgo", ["Conforme", "No Conforme", "Oportunidad de mejora"])
@@ -1022,43 +738,38 @@ elif opcion == "ENTRADA":
 
             if n_cump == "No Conforme":
                 st.warning("Evidencia requerida para hallazgos No Conforme")
-            st.markdown("""</div>""", unsafe_allow_html=True)
 
-            st.markdown("""<div class='form-section'>
-                <div class='form-section-title'>Contenido</div>""", unsafe_allow_html=True)
-            n_evid = st.text_area("Evidencia Objetiva", height=120, placeholder="Describa detalladamente la evidencia encontrada durante la auditoría...")
-            n_obs = st.text_area("Observaciones", height=80, placeholder="Notas adicionales o contexto (opcional)...")
-            st.markdown("""</div>""", unsafe_allow_html=True)
+            st.write("**Contenido**")
+            n_evid = st.text_area("Evidencia Objetiva", height=120, placeholder="Describa la evidencia encontrada...")
+            n_obs = st.text_area("Observaciones", height=80, placeholder="Notas adicionales (opcional)...")
 
-            col_submit1, col_submit2 = st.columns(2)
-            with col_submit1:
-                if st.form_submit_button("Registrar Hallazgo", use_container_width=True):
+            if st.form_submit_button("Registrar Hallazgo", use_container_width=True):
+                try:
+                    validate_required(n_proc, "Proceso")
+                    validate_required(n_auditor, "Auditor")
+                    validate_required(n_esp, "Sub-requisito")
+                    if n_cump == "No Conforme":
+                        validate_required(n_evid, "Evidencia (requerida si No Conforme)")
+
+                    nuevo_id = int(df_matriz['id'].max() + 1) if not df_matriz.empty else 1
+                    nueva_fila = {
+                        'id': nuevo_id, 'fecha': n_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': n_proc.strip(),
+                        'auditor_responsable': n_auditor.strip(), 'requisito_iso': n_iso, 'requisito_especifico': n_esp.strip(),
+                        'requisito_interno_legal': n_legal.strip(), 'tipo_hallazgo': n_tipo, 'cumplimiento': n_cump,
+                        'evidencia_objetiva': n_evid.strip(), 'observaciones': n_obs.strip()
+                    }
+                    df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
+
                     try:
-                        validate_required(n_proc, "Proceso")
-                        validate_required(n_auditor, "Auditor")
-                        validate_required(n_esp, "Sub-requisito")
-                        if n_cump == "No Conforme":
-                            validate_required(n_evid, "Evidencia (requerida si No Conforme)")
-
-                        nuevo_id = int(df_matriz['id'].max() + 1) if not df_matriz.empty else 1
-                        nueva_fila = {
-                            'id': nuevo_id, 'fecha': n_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': n_proc.strip(),
-                            'auditor_responsable': n_auditor.strip(), 'requisito_iso': n_iso, 'requisito_especifico': n_esp.strip(),
-                            'requisito_interno_legal': n_legal.strip(), 'tipo_hallazgo': n_tipo, 'cumplimiento': n_cump,
-                            'evidencia_objetiva': n_evid.strip(), 'observaciones': n_obs.strip()
-                        }
-                        df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
-
-                        try:
-                            update_gsheets("Matriz", df_matriz)
-                            st.success("Hallazgo registrado exitosamente")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Error al guardar: {str(e)}")
-                    except ValidationError as e:
-                        st.error(f"{str(e)}")
+                        update_gsheets("Matriz", df_matriz)
+                        st.success("Hallazgo registrado exitosamente")
+                        st.rerun()
                     except Exception as e:
-                        st.error(f"Error: {str(e)}")
+                        st.error(f"Error al guardar: {str(e)}")
+                except ValidationError as e:
+                    st.error(f"{str(e)}")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
 
 # ==========================================
 # MÓDULO 3: SEGUIMIENTO SAC / OM (CRUD)
