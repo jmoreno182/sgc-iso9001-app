@@ -665,6 +665,17 @@ elif opcion == "ENTRADA":
                         col_btn1, col_btn2 = st.columns(2)
                         with col_btn1:
                             if st.form_submit_button("Guardar Cambios", use_container_width=True):
+                                st.session_state[f"confirm_edit_{idx}"] = True
+                        with col_btn2:
+                            if st.form_submit_button("Cancelar", use_container_width=True):
+                                st.session_state[f"modal_edit_{idx}"] = False
+                                st.rerun()
+
+                    if st.session_state.get(f"confirm_edit_{idx}", False):
+                        st.warning(f"Confirmar cambios en Hallazgo #{row['id']}")
+                        col_c1, col_c2 = st.columns(2)
+                        with col_c1:
+                            if st.button("Confirmar cambios", key=f"confirm_yes_{idx}", use_container_width=True):
                                 try:
                                     if cump == "No Conforme" and not evid.strip():
                                         st.error("Evidencia requerida cuando cumplimiento es No Conforme")
@@ -679,14 +690,15 @@ elif opcion == "ENTRADA":
                                             update_gsheets("Matriz", df_matriz)
                                             st.success(f"Hallazgo #{row['id']} actualizado")
                                             st.session_state[f"modal_edit_{idx}"] = False
+                                            st.session_state[f"confirm_edit_{idx}"] = False
                                             st.rerun()
                                         except Exception as e:
                                             st.error(f"Error: {str(e)}")
                                 except Exception as e:
                                     st.error(f"Error: {str(e)}")
-                        with col_btn2:
-                            if st.form_submit_button("Cancelar", use_container_width=True):
-                                st.session_state[f"modal_edit_{idx}"] = False
+                        with col_c2:
+                            if st.button("Cancelar", key=f"confirm_no_{idx}", use_container_width=True):
+                                st.session_state[f"confirm_edit_{idx}"] = False
                                 st.rerun()
 
                 if st.session_state.get(f"modal_details_{idx}", False):
@@ -756,26 +768,41 @@ elif opcion == "ENTRADA":
                     validate_required(n_esp, "Sub-requisito")
                     if n_cump == "No Conforme":
                         validate_required(n_evid, "Evidencia (requerida si No Conforme)")
-
-                    nuevo_id = int(df_matriz['id'].max() + 1) if not df_matriz.empty else 1
-                    nueva_fila = {
-                        'id': nuevo_id, 'fecha': n_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': n_proc.strip(),
-                        'auditor_responsable': n_auditor.strip(), 'requisito_iso': n_iso, 'requisito_especifico': n_esp.strip(),
-                        'requisito_interno_legal': n_legal.strip(), 'tipo_hallazgo': n_tipo, 'cumplimiento': n_cump,
-                        'evidencia_objetiva': n_evid.strip(), 'observaciones': n_obs.strip()
-                    }
-                    df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
-
-                    try:
-                        update_gsheets("Matriz", df_matriz)
-                        st.success("Hallazgo registrado exitosamente")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Error al guardar: {str(e)}")
+                    st.session_state["confirm_new_entrada"] = True
                 except ValidationError as e:
                     st.error(f"{str(e)}")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
+
+        if st.session_state.get("confirm_new_entrada", False):
+            st.warning("Confirmar registro de nuevo hallazgo")
+            st.write(f"**Proceso:** {n_proc} | **Auditor:** {n_auditor} | **Requisito:** {n_esp}")
+            col_cf1, col_cf2 = st.columns(2)
+            with col_cf1:
+                if st.button("Confirmar registro", key="confirm_new_yes", use_container_width=True):
+                    try:
+                        nuevo_id = int(df_matriz['id'].max() + 1) if not df_matriz.empty else 1
+                        nueva_fila = {
+                            'id': nuevo_id, 'fecha': n_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': n_proc.strip(),
+                            'auditor_responsable': n_auditor.strip(), 'requisito_iso': n_iso, 'requisito_especifico': n_esp.strip(),
+                            'requisito_interno_legal': n_legal.strip(), 'tipo_hallazgo': n_tipo, 'cumplimiento': n_cump,
+                            'evidencia_objetiva': n_evid.strip(), 'observaciones': n_obs.strip()
+                        }
+                        df_matriz = pd.concat([df_matriz, pd.DataFrame([nueva_fila])], ignore_index=True)
+
+                        try:
+                            update_gsheets("Matriz", df_matriz)
+                            st.success("Hallazgo registrado exitosamente")
+                            st.session_state["confirm_new_entrada"] = False
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error al guardar: {str(e)}")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+            with col_cf2:
+                if st.button("Cancelar", key="confirm_new_no", use_container_width=True):
+                    st.session_state["confirm_new_entrada"] = False
+                    st.rerun()
 
 # ==========================================
 # MÓDULO 3: SEGUIMIENTO SAC / OM (CRUD)
@@ -798,26 +825,38 @@ elif opcion == "SEGUIMIENTO":
             with st.form("form_edit_sac"):
                 st.write(f"**Código de Acción:** {fila_sac['codigo']} | **Proceso:** {fila_sac['proceso_auditado']}")
                 e_plan = st.selectbox("Estatus del Plan:", ["Abierto", "Cerrado"], index=0 if fila_sac['estatus_plan']=='Abierto' else 1)
-                e_efic = st.selectbox("Estatus de la Eficacia:", ["Pendiente verificar", "Eficaz", "No eficaz"], 
+                e_efic = st.selectbox("Estatus de la Eficacia:", ["Pendiente verificar", "Eficaz", "No eficaz"],
                                       index=0 if fila_sac['estatus_la_eficacia']=='Pendiente verificar' else 1 if fila_sac['estatus_la_eficacia']=='Eficaz' else 2)
                 e_obs = st.text_area("Comentarios de Verificación:", value=str(fila_sac['observaciones'] or ''))
-                
+
                 if st.form_submit_button("Actualizar Estatus en la Nube"):
-                    try:
-                        if e_plan == "Cerrado" and e_efic == "Pendiente verificar":
-                            st.error("No puede cerrar un plan con eficacia pendiente de verificar")
-                        else:
+                    if e_plan == "Cerrado" and e_efic == "Pendiente verificar":
+                        st.error("No puede cerrar un plan con eficacia pendiente de verificar")
+                    else:
+                        st.session_state["confirm_sac_update"] = True
+
+            if st.session_state.get("confirm_sac_update", False):
+                st.warning(f"Confirmar actualización del plan {fila_sac['codigo']}")
+                col_cs1, col_cs2 = st.columns(2)
+                with col_cs1:
+                    if st.button("Confirmar actualización", key="confirm_sac_yes", use_container_width=True):
+                        try:
                             df_sac.at[idx_sac, 'estatus_plan'] = e_plan
                             df_sac.at[idx_sac, 'estatus_la_eficacia'] = e_efic
                             df_sac.at[idx_sac, 'observaciones'] = e_obs.strip()
                             try:
                                 update_gsheets("SAC_OM", df_sac)
                                 st.success("Plan actualizado exitosamente")
+                                st.session_state["confirm_sac_update"] = False
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Error al guardar: {str(e)}")
-                    except Exception as e:
-                        st.error(f"Error: {str(e)}")
+                        except Exception as e:
+                            st.error(f"Error: {str(e)}")
+                with col_cs2:
+                    if st.button("Cancelar", key="confirm_sac_no", use_container_width=True):
+                        st.session_state["confirm_sac_update"] = False
+                        st.rerun()
         else:
             st.info("No hay planes de acción registrados en este momento.")
             
@@ -846,6 +885,18 @@ elif opcion == "SEGUIMIENTO":
                     if df_sac['codigo'].isin([s_cod]).any():
                         st.error(f"Código '{s_cod}' ya existe. Use código único")
                     else:
+                        st.session_state["confirm_sac_new"] = True
+                except ValidationError as e:
+                    st.error(f"{str(e)}")
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+
+        if st.session_state.get("confirm_sac_new", False):
+            st.warning(f"Confirmar registro de nueva acción: {s_cod}")
+            col_cn1, col_cn2 = st.columns(2)
+            with col_cn1:
+                if st.button("Confirmar registro", key="confirm_sac_new_yes", use_container_width=True):
+                    try:
                         nuevo_id_sac = int(df_sac['id'].max() + 1) if not df_sac.empty else 1
                         nueva_sac = {
                             'id': nuevo_id_sac, 'fecha': s_fecha.strftime('%Y-%m-%d'), 'proceso_auditado': s_proc.strip(),
@@ -857,13 +908,16 @@ elif opcion == "SEGUIMIENTO":
                         try:
                             update_gsheets("SAC_OM", df_sac)
                             st.success("Plan registrado exitosamente")
+                            st.session_state["confirm_sac_new"] = False
                             st.rerun()
                         except Exception as e:
                             st.error(f"Error al guardar: {str(e)}")
-                except ValidationError as e:
-                    st.error(f"{str(e)}")
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+            with col_cn2:
+                if st.button("Cancelar", key="confirm_sac_new_no", use_container_width=True):
+                    st.session_state["confirm_sac_new"] = False
+                    st.rerun()
 
 # ==========================================
 # MÓDULO 4: REGISTRO DE HORAS DE AUDITORÍA
@@ -904,13 +958,28 @@ elif opcion == "HORAS":
                 try:
                     validate_required(h_auditor, "Auditor")
                     validate_required(h_proceso, "Proceso")
-                    fila = append_participacion(h_fecha, h_proceso, h_auditor, h_rol, h_horas, h_obs)
-                    st.success(f"Participación registrada: {h_auditor} | {h_rol} | {h_horas:.1f} h (fila {fila})")
-                    st.rerun()
+                    st.session_state["confirm_horas"] = True
                 except ValidationError as e:
                     st.error(f"{str(e)}")
                 except Exception as e:
-                    st.error(f"Error al guardar: {str(e)}")
+                    st.error(f"Error: {str(e)}")
+
+        if st.session_state.get("confirm_horas", False):
+            st.warning(f"Confirmar registro: {h_auditor} | {h_rol} | {h_horas:.1f}h | {h_proceso}")
+            col_ch1, col_ch2 = st.columns(2)
+            with col_ch1:
+                if st.button("Confirmar registro", key="confirm_horas_yes", use_container_width=True):
+                    try:
+                        fila = append_participacion(h_fecha, h_proceso, h_auditor, h_rol, h_horas, h_obs)
+                        st.success(f"Participación registrada: {h_auditor} | {h_rol} | {h_horas:.1f} h (fila {fila})")
+                        st.session_state["confirm_horas"] = False
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error al guardar: {str(e)}")
+            with col_ch2:
+                if st.button("Cancelar", key="confirm_horas_no", use_container_width=True):
+                    st.session_state["confirm_horas"] = False
+                    st.rerun()
 
         st.divider()
         st.subheader("Últimas Participaciones Registradas")
