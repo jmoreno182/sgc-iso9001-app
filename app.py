@@ -818,9 +818,37 @@ elif opcion == "SEGUIMIENTO":
     
     with tab_s1:
         if not df_sac.empty:
-            st.dataframe(df_sac, use_container_width=True, hide_index=True)
-            
-            id_sac = st.selectbox("Seleccione ID del Plan para actualizar:", df_sac['id'].tolist())
+            # Búsqueda y filtros
+            col_search, col_filter = st.columns([2, 1])
+            with col_search:
+                search_sac = st.text_input("Buscar por código, proceso o auditor:", placeholder="ej: SAC-001, IT, Carlos")
+            with col_filter:
+                filter_status = st.selectbox("Filtrar por estatus:", ["Todos", "Abierto", "Cerrado"], key="sac_status_filter")
+
+            # Aplicar búsqueda y filtros
+            df_sac_filtered = df_sac.copy()
+
+            if search_sac:
+                df_sac_filtered = df_sac_filtered[
+                    (df_sac_filtered['codigo'].str.contains(search_sac, case=False, na=False)) |
+                    (df_sac_filtered['proceso_auditado'].str.contains(search_sac, case=False, na=False)) |
+                    (df_sac_filtered['auditor_responsable'].str.contains(search_sac, case=False, na=False))
+                ]
+
+            if filter_status != "Todos":
+                df_sac_filtered = df_sac_filtered[df_sac_filtered['estatus_plan'] == filter_status]
+
+            # Mostrar resultados
+            if not df_sac_filtered.empty:
+                st.write(f"**{len(df_sac_filtered)} plan(es) encontrado(s)**")
+                st.dataframe(df_sac_filtered, use_container_width=True, hide_index=True)
+
+                id_sac = st.selectbox("Seleccione ID del Plan para actualizar:", df_sac_filtered['id'].tolist())
+            else:
+                st.info("Sin planes que coincidan con los criterios de búsqueda")
+                st.stop()
+
+            idx_sac = df_sac[df_sac['id'] == id_sac].index[0]
             idx_sac = df_sac[df_sac['id'] == id_sac].index[0]
             fila_sac = df_sac.loc[idx_sac]
             
@@ -1056,34 +1084,50 @@ elif opcion == "HORAS":
 
             st.divider()
 
-            st.write("**Tabla de Horas por Auditor** (2026 + acumulado histórico)")
-            st.dataframe(df_rep, use_container_width=True, hide_index=True)
+            # Búsqueda por auditor
+            search_auditor = st.text_input("Buscar auditor:", placeholder="Escribe nombre del auditor para filtrar")
 
-            # Gráfico: total acumulado por auditor y rol
-            df_chart = df_rep[["Auditor", "OB_Total", "AF_Total", "AD_Total", "AL_Total"]].melt(
-                id_vars="Auditor", var_name="Rol", value_name="Horas"
-            )
-            df_chart["Rol"] = df_chart["Rol"].str.replace("_Total", "")
-            fig_horas = px.bar(
-                df_chart, x="Auditor", y="Horas", color="Rol", barmode="stack",
-                color_discrete_map={"OB": "#9CA3AF", "AF": "#F59E0B", "AD": "#3B82F6", "AL": "#10B981"},
-                title="Horas Acumuladas Totales por Auditor y Rol",
-            )
-            fig_horas = apply_iso_theme(fig_horas)
-            fig_horas.update_layout(xaxis_tickangle=-45, height=500)
-            st.plotly_chart(fig_horas, use_container_width=True)
+            # Filtrar tabla
+            df_rep_filtered = df_rep.copy()
+            if search_auditor:
+                df_rep_filtered = df_rep_filtered[
+                    df_rep_filtered['Auditor'].str.contains(search_auditor, case=False, na=False)
+                ]
 
-            # Exportar reporte a Excel
+            # Mostrar resultados
+            if not df_rep_filtered.empty:
+                st.write(f"**Tabla de Horas por Auditor** ({len(df_rep_filtered)} auditor(es))")
+                st.dataframe(df_rep_filtered, use_container_width=True, hide_index=True)
+            else:
+                st.info("Sin auditores que coincidan con la búsqueda")
+
+            # Gráfico: total acumulado por auditor y rol (usa datos filtrados)
+            if not df_rep_filtered.empty:
+                df_chart = df_rep_filtered[["Auditor", "OB_Total", "AF_Total", "AD_Total", "AL_Total"]].melt(
+                    id_vars="Auditor", var_name="Rol", value_name="Horas"
+                )
+                df_chart["Rol"] = df_chart["Rol"].str.replace("_Total", "")
+                fig_horas = px.bar(
+                    df_chart, x="Auditor", y="Horas", color="Rol", barmode="stack",
+                    color_discrete_map={"OB": "#9CA3AF", "AF": "#F59E0B", "AD": "#3B82F6", "AL": "#10B981"},
+                    title="Horas Acumuladas Totales por Auditor y Rol",
+                )
+                fig_horas = apply_iso_theme(fig_horas)
+                fig_horas.update_layout(xaxis_tickangle=-45, height=500)
+                st.plotly_chart(fig_horas, use_container_width=True)
+
+            # Exportar reporte a Excel (toda la base de datos, no solo filtrado)
             buffer_h = io.BytesIO()
             with pd.ExcelWriter(buffer_h, engine='openpyxl') as writer:
                 df_rep.to_excel(writer, sheet_name='Reporte Horas', index=False)
                 if not df_part.empty:
                     df_part.to_excel(writer, sheet_name='Participaciones 2026', index=False)
             st.download_button(
-                label="📥 Descargar Reporte de Horas (.XLSX)",
+                label="Descargar Reporte de Horas (XLSX)",
                 data=buffer_h.getvalue(),
                 file_name=f"Reporte_Horas_Auditoria_{datetime.now().strftime('%Y%m%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
             )
 
 # ==========================================
