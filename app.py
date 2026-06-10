@@ -311,6 +311,8 @@ if "GOOGLE_SERVICE_ACCOUNT_INFO" not in st.secrets:
 
 try:
     df_matriz, df_sac = load_gsheets_data(max_retries=3)
+    df_matriz = df_matriz.drop_duplicates(subset=['id'], keep='first')
+    df_sac = df_sac.drop_duplicates(subset=['id'], keep='first')
 except Exception as e:
     st.error(f"Error al cargar datos: {str(e)}")
     st.stop()
@@ -587,20 +589,20 @@ elif opcion == "ENTRADA":
 
                     st.divider()
 
-                    if st.button(f"Editar hallazgo #{row['id']}", key=f"edit_hallazgo_{row['id']}"):
-                        st.session_state[f"editing_hallazgo_{row['id']}"] = True
+                    if st.button(f"Editar hallazgo #{row['id']}", key=f"edit_hallazgo_{idx}"):
+                        st.session_state[f"editing_hallazgo_{idx}"] = True
 
-                    if st.session_state.get(f"editing_hallazgo_{row['id']}", False):
+                    if st.session_state.get(f"editing_hallazgo_{idx}", False):
                         st.subheader("Editar Hallazgo")
-                        with st.form(f"form_edit_hallazgo_{row['id']}"):
+                        with st.form(f"form_edit_hallazgo_{idx}"):
                             tipo_h = st.selectbox("Tipo de Hallazgo:", ["Conforme", "No Conforme", "Oportunidad de mejora"],
                                                  index=0 if row['tipo_hallazgo']=='Conforme' else 1 if row['tipo_hallazgo']=='No Conforme' else 2,
-                                                 key=f"tipo_{row['id']}")
+                                                 key=f"tipo_{idx}")
                             cump = st.selectbox("Cumplimiento:", ["Conforme", "No Conforme"],
                                                index=0 if row['cumplimiento']=='Conforme' else 1,
-                                               key=f"cump_{row['id']}")
-                            evid = st.text_area("Evidencia Objetiva:", value=str(row['evidencia_objetiva'] or ''), height=100, key=f"evid_{row['id']}")
-                            obs = st.text_area("Observaciones:", value=str(row['observaciones'] or ''), height=80, key=f"obs_{row['id']}")
+                                               key=f"cump_{idx}")
+                            evid = st.text_area("Evidencia Objetiva:", value=str(row['evidencia_objetiva'] or ''), height=100, key=f"evid_{idx}")
+                            obs = st.text_area("Observaciones:", value=str(row['observaciones'] or ''), height=80, key=f"obs_{idx}")
 
                             col_btn1, col_btn2 = st.columns(2)
                             with col_btn1:
