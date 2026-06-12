@@ -682,11 +682,11 @@ elif opcion == "ENTRADA":
                             if st.button("Confirmar cambios", key=f"confirm_yes_{idx}", use_container_width=True):
                                 try:
                                     cump = st.session_state.get(f"edit_cump_{idx}")
-                                    evid = st.session_state.get(f"edit_evid_{idx}")
+                                    evid = st.session_state.get(f"edit_evid_{idx}", "")
                                     tipo_h = st.session_state.get(f"edit_tipo_{idx}")
-                                    obs = st.session_state.get(f"edit_obs_{idx}")
+                                    obs = st.session_state.get(f"edit_obs_{idx}", "")
 
-                                    if cump == "No Conforme" and not evid.strip():
+                                    if cump == "No Conforme" and not (evid or "").strip():
                                         st.error("Evidencia requerida cuando cumplimiento es No Conforme")
                                     else:
                                         idx_row = df_matriz[df_matriz['id'] == row['id']].index[0]
