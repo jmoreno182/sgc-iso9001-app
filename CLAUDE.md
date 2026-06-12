@@ -6,6 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Single-file Streamlit app (`app.py`) for ISO 9001:2015 audit management (SGC — Sistema de Gestión de Calidad). The app is written in Spanish and uses Google Sheets as its live backend database via `streamlit-gsheets-connection`.
 
+## Requirements
+
+- **Python 3.9+** — Required for virtual environment and all dependencies
+- **pip** — Python package manager (included with Python)
+- **Google Sheets** — Project uses Google Sheets as backend database
+
 ## Commands
 
 ```bash
@@ -211,6 +217,48 @@ Empty compliance fields (`cumplimiento == null or empty`) now correctly display 
 
 Implementation: Priority-based status determination checks empty/null first, then matches specific values.
 
+## Build & Verification
+
+### First-Run Verification
+
+After setup, verify the application loads correctly:
+
+1. **Check dependencies**: `pip list | findstr streamlit` (Windows) or `pip list | grep streamlit` (macOS/Linux)
+2. **Verify secrets**: `streamlit secrets show` — should display `connections.gsheets.spreadsheet` and `GOOGLE_SERVICE_ACCOUNT_INFO`
+3. **Test Google Sheets connectivity**: Run `streamlit run app.py` and verify Dashboard loads with real data from Google Sheets
+4. **Check HORAS module**: Navigate to "Registro de Horas" tab — verify it loads the three HORAS sheets without errors
+
+If any step fails, refer to Troubleshooting section below.
+
+### Quick Sanity Check
+
+```bash
+# Verify virtual environment is active
+python --version  # Should show Python 3.9 or higher
+
+# Verify Streamlit is installed
+streamlit --version  # Should show 1.x or higher
+
+# Test app loads (Ctrl+C to stop)
+streamlit run app.py
+```
+
+## Development Environment
+
+### Optional: Docker/Dev Containers
+
+The project includes `.devcontainer/devcontainer.json` for containerized development using VS Code Dev Containers. This is optional and recommended for isolated development environments.
+
+To use:
+1. Install VS Code and the "Dev Containers" extension
+2. Open the project in VS Code
+3. Click "Reopen in Container" when prompted
+4. Continue with standard setup commands above
+
+### Claude Code Configuration
+
+The `.claude/` directory contains Claude Code configuration files (e.g., `settings.json`) for IDE integration. These are automatically managed by Claude Code and should not be manually edited.
+
 ## Troubleshooting
 
 ### Google Sheets Credentials Issues
@@ -299,6 +347,19 @@ All changes maintain backward compatibility with existing Google Sheets data and
 
 ## Additional Documentation
 
-- **Setup & Verification**: See `PENDING_TASKS.md` for manual Google Sheets verification steps and troubleshooting
-- **Implementation Details**: See `docs/` for specification, design, and implementation plans
-- **Sheet Schema Details**: See "Google Sheets Schema" section above for column names and data types
+### Reference Documents
+
+- **`PENDING_TASKS.md`** — Setup checklist and verification steps for Google Sheets configuration, including manual troubleshooting
+- **`docs/`** — Complete specification and implementation documentation:
+  - `2026-06-09-auditor-hours-tracking-design.md` — HORAS module design specifications
+  - `2026-06-09-auditor-hours-tracking-implementation.md` — HORAS module implementation details
+  - `2025-06-09-audit-ui-refactor-spec.md` — UI/UX refactor specifications
+  - `2025-06-09-audit-ui-refactor-implementation.md` — UI/UX implementation details
+
+### Data Sources
+
+- **`SGC-F-AS-024-2 Registro de horas de Auditoria.pdf`** — Source PDF containing auditor hours baseline (2011-2025). Used by `setup_horas_sheets.py` to populate historical data for the 23 auditors in Horas_Base_2011_2025 sheet. Columns: "Total de Horas Acumuladas" for each audit type (OB/AF/AD/AL).
+
+### Schema Reference
+
+See "Google Sheets Schema" section above for complete column names and data types for all five worksheets: Matriz, SAC_OM, Horas_Base_2011_2025, Participaciones_2026, Reporte_Horas_2026.

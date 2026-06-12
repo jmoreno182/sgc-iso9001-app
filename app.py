@@ -665,6 +665,10 @@ elif opcion == "ENTRADA":
                         col_btn1, col_btn2 = st.columns(2)
                         with col_btn1:
                             if st.form_submit_button("Guardar Cambios", use_container_width=True):
+                                st.session_state[f"edit_tipo_{idx}"] = tipo_h
+                                st.session_state[f"edit_cump_{idx}"] = cump
+                                st.session_state[f"edit_evid_{idx}"] = evid
+                                st.session_state[f"edit_obs_{idx}"] = obs
                                 st.session_state[f"confirm_edit_{idx}"] = True
                         with col_btn2:
                             if st.form_submit_button("Cancelar", use_container_width=True):
@@ -677,6 +681,11 @@ elif opcion == "ENTRADA":
                         with col_c1:
                             if st.button("Confirmar cambios", key=f"confirm_yes_{idx}", use_container_width=True):
                                 try:
+                                    cump = st.session_state.get(f"edit_cump_{idx}")
+                                    evid = st.session_state.get(f"edit_evid_{idx}")
+                                    tipo_h = st.session_state.get(f"edit_tipo_{idx}")
+                                    obs = st.session_state.get(f"edit_obs_{idx}")
+
                                     if cump == "No Conforme" and not evid.strip():
                                         st.error("Evidencia requerida cuando cumplimiento es No Conforme")
                                     else:
@@ -692,6 +701,10 @@ elif opcion == "ENTRADA":
                                             st.success(f"Hallazgo #{row['id']} actualizado")
                                             st.session_state[f"modal_edit_{idx}"] = False
                                             st.session_state[f"confirm_edit_{idx}"] = False
+                                            st.session_state.pop(f"edit_tipo_{idx}", None)
+                                            st.session_state.pop(f"edit_cump_{idx}", None)
+                                            st.session_state.pop(f"edit_evid_{idx}", None)
+                                            st.session_state.pop(f"edit_obs_{idx}", None)
                                             st.rerun()
                                         except Exception as e:
                                             st.error(f"Error: {str(e)}")
@@ -700,6 +713,10 @@ elif opcion == "ENTRADA":
                         with col_c2:
                             if st.button("Cancelar", key=f"confirm_no_{idx}", use_container_width=True):
                                 st.session_state[f"confirm_edit_{idx}"] = False
+                                st.session_state.pop(f"edit_tipo_{idx}", None)
+                                st.session_state.pop(f"edit_cump_{idx}", None)
+                                st.session_state.pop(f"edit_evid_{idx}", None)
+                                st.session_state.pop(f"edit_obs_{idx}", None)
                                 st.rerun()
 
                 if st.session_state.get(f"modal_details_{idx}", False):
