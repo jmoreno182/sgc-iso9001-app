@@ -310,5 +310,6 @@ def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
     sh = gc.open_by_key(sheet_id)
     ws = sh.worksheet(worksheet_name)
 
+    data_clean = data.reset_index(drop=True)
     ws.clear()
-    ws.append_rows([data.columns.tolist()] + data.values.tolist(), value_input_option="USER_ENTERED")
+    ws.append_rows([data_clean.columns.tolist()] + data_clean.values.tolist(), value_input_option="USER_ENTERED")
