@@ -311,6 +311,10 @@ def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
     ws = sh.worksheet(worksheet_name)
 
     data_clean = data.reset_index(drop=True).fillna("")
-    rows_to_append = [data_clean.columns.tolist()] + data_clean.astype(str).values.tolist()
+
+    rows_to_update = [data_clean.columns.tolist()]
+    for _, row in data_clean.iterrows():
+        rows_to_update.append([str(v) if pd.notna(v) else "" for v in row.values])
+
     ws.clear()
-    ws.append_rows(rows_to_append, value_input_option="USER_ENTERED")
+    ws.update(rows_to_update)
