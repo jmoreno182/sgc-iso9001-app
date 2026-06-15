@@ -394,26 +394,13 @@ if opcion == "ANÁLISIS":
     if stats['total'] == 0:
         st.info("Sin datos para mostrar. Agrega requisitos en 'Matriz de Hallazgos'.")
     else:
-        # Métricas (2+2 grid layout)
+        # Metricas principales
         row1_col1, row1_col2 = st.columns(2, gap="medium")
         with row1_col1:
             trend_color = ISO_CONFORME if trend['trend'] == '↑' else ISO_NO_CONFORME if trend['trend'] == '↓' else ISO_TEXTO_TENUE
             st.markdown(f"<div class='metric-card primary'><h3>Conformidad Global</h3><h2>{stats['pct']:.1f}%</h2><p style='color: {trend_color}; font-size: 1.1rem;'>{trend['trend']} {abs(stats['pct'] - trend['previous']):.1f}p</p></div>", unsafe_allow_html=True)
         with row1_col2:
             st.markdown(f"<div class='metric-card compact'><h3>Requisitos Evaluados</h3><h2>{stats['total']}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
-
-        st.divider()
-
-        row2_col1, row2_col2 = st.columns(2, gap="medium")
-        with row2_col1:
-            abiertos = len(df_sac[df_sac['estatus_plan']=='Abierto']) if not df_sac.empty else 0
-            sac_color = ISO_NO_CONFORME if abiertos > 5 else ISO_PENDIENTE if abiertos > 0 else ISO_CONFORME
-            st.markdown(f"<div class='metric-card compact'><h3>SAC/OM Abiertos</h3><h2 style='color: {sac_color};'>{abiertos}</h2><p>Pendientes por verificar</p></div>", unsafe_allow_html=True)
-        with row2_col2:
-            auditor_comp = compute_auditor_comparison(df_filtered)
-            if not auditor_comp.empty:
-                top_auditor = auditor_comp.loc[auditor_comp['Requisitos Evaluados'].idxmax()]
-                st.markdown(f"<div class='metric-card compact'><h3>Auditor Top</h3><h2>{top_auditor['Auditor']}</h2><p>{int(top_auditor['Requisitos Evaluados'])} requisitos</p></div>", unsafe_allow_html=True)
 
         st.divider()
 
