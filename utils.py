@@ -261,7 +261,10 @@ def load_horas_data() -> Tuple[pd.DataFrame, pd.DataFrame, list]:
     if not df_part.empty:
         df_part["Horas"] = pd.to_numeric(df_part["Horas"].astype(str).str.replace(",", "."), errors="coerce").fillna(0.0)
 
-    df_rep = pd.DataFrame(sh.worksheet("Reporte_Horas_2026").get_all_records())
+    rep_raw = sh.worksheet("Reporte_Horas_2026").get_all_values()
+    rep_header = rep_raw[0] if rep_raw else []
+    rep_rows = [r for r in rep_raw[1:] if any(str(cell).strip() for cell in r)]
+    df_rep = pd.DataFrame(rep_rows, columns=rep_header) if rep_rows else pd.DataFrame(columns=rep_header)
 
     auditores = [a for a in sh.worksheet("Horas_Base_2011_2025").col_values(1)[1:] if str(a).strip()]
 
