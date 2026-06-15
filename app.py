@@ -19,7 +19,6 @@ from utils import (
     compute_conformidad_stats,
     compute_process_stats,
     compute_requirement_stats,
-    compute_auditor_stats,
     compute_conformidad_trend,
     load_horas_data,
     append_participacion,
@@ -455,40 +454,67 @@ if opcion == "ANÁLISIS":
 
         st.write("---")
 
-        st.subheader("4. Detalle de Procesos Auditados por Auditor")
-        auditor_detail = compute_auditor_stats(df_filtered)
-        if not auditor_detail.empty:
-            # Count unique processes per auditor
-            auditor_count = auditor_detail.groupby('auditor_responsable').size().reset_index(name='Total Procesos Únicos')
+        st.subheader("4. Detalle de Horas de Auditoria por Auditor")
+        try:
+            df_horas_part, _, _ = load_horas_data()
+        except Exception as e:
+            st.info(f"No se pudieron cargar las horas de auditoria: {str(e)}")
+            df_horas_part = pd.DataFrame()
 
-            # Bar chart of unique process count
-            fig_auditor = px.bar(auditor_count, x='auditor_responsable', y='Total Procesos Únicos',
-                                color_discrete_sequence=[ISO_TINTA], text_auto='d')
-            fig_auditor.update_layout(xaxis_title='Auditor', yaxis_title='Procesos Únicos Auditados')
-            fig_auditor = apply_iso_theme(fig_auditor)
-            st.plotly_chart(fig_auditor, use_container_width=True)
-
-            # Grouped detail table by auditor
-            st.write("**Detalle: Procesos por Auditor**")
-
-            for auditor in sorted(auditor_detail['auditor_responsable'].unique()):
-                auditor_rows = auditor_detail[auditor_detail['auditor_responsable'] == auditor][
-                    ['proceso_auditado', 'fecha']
-                ].reset_index(drop=True)
-
-                with st.expander(f"{auditor} ({len(auditor_rows)} procesos)", expanded=True):
-                    st.dataframe(
-                        auditor_rows.rename(columns={
-                            'proceso_auditado': 'Proceso',
-                            'fecha': 'Fecha'
-                        }),
-                        use_container_width=True,
-                        hide_index=True
-                    )
-
+        required_horas_cols = {"Auditor", "Proceso", "Fecha", "Horas"}
+        if df_horas_part.empty or not required_horas_cols.issubset(df_horas_part.columns):
+            st.info("Sin registros de horas para graficar.")
         else:
-            st.info("Sin datos de auditores para graficar.")
+            df_horas_detail = df_horas_part.copy()
+            df_horas_detail["Fecha"] = pd.to_datetime(df_horas_detail["Fecha"], errors="coerce")
+            df_horas_detail["Horas"] = pd.to_numeric(df_horas_detail["Horas"].astype(str).str.replace(",", "."), errors="coerce").fillna(0.0)
 
+            if auditor_filter:
+                df_horas_detail = df_horas_detail[df_horas_detail["Auditor"].isin(auditor_filter)]
+            if proceso_filter:
+                df_horas_detail = df_horas_detail[df_horas_detail["Proceso"].isin(proceso_filter)]
+            if isinstance(fecha_range, tuple) and len(fecha_range) == 2:
+                df_horas_detail = df_horas_detail[
+                    (df_horas_detail["Fecha"] >= pd.Timestamp(fecha_range[0])) &
+                    (df_horas_detail["Fecha"] <= pd.Timestamp(fecha_range[1]))
+                ]
+
+            if df_horas_detail.empty:
+                st.info("Sin registros de horas que coincidan con los filtros.")
+            else:
+                auditor_hours = (
+                    df_horas_detail.groupby("Auditor", as_index=False)["Horas"]
+                    .sum()
+                    .sort_values("Horas", ascending=False)
+                )
+                fig_auditor = px.bar(
+                    auditor_hours,
+                    x="Auditor",
+                    y="Horas",
+                    color_discrete_sequence=[ISO_TINTA],
+                    text_auto=".1f",
+                )
+                fig_auditor.update_layout(xaxis_title="Auditor", yaxis_title="Horas registradas")
+                fig_auditor = apply_iso_theme(fig_auditor)
+                st.plotly_chart(fig_auditor, use_container_width=True)
+
+                st.write("**Detalle: Horas por Auditor**")
+                for auditor in sorted(df_horas_detail["Auditor"].dropna().unique()):
+                    auditor_rows = (
+                        df_horas_detail[df_horas_detail["Auditor"] == auditor][["Proceso", "Fecha", "Horas"]]
+                        .sort_values("Fecha", ascending=False)
+                        .reset_index(drop=True)
+                    )
+                    auditor_rows["Fecha"] = auditor_rows["Fecha"].dt.strftime("%Y-%m-%d").fillna("")
+                    total_horas = auditor_rows["Horas"].sum()
+
+                    with st.expander(f"{auditor} ({total_horas:.1f} h)", expanded=True):
+                        st.dataframe(
+                            auditor_rows,
+                            use_container_width=True,
+                            hide_index=True,
+                            column_config={"Horas": st.column_config.NumberColumn("Horas", format="%.1f")},
+                        )
 # ==========================================
 # MÓDULO 2: MATRIZ DE HALLAZGOS (CRUD)
 # ==========================================
