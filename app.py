@@ -433,7 +433,7 @@ if opcion == "ANÁLISIS":
         # --- FILA PARA GRÁFICOS 2 Y 3 ---
         col_izq, col_der = st.columns(2)
         with col_izq:
-            st.subheader("2. Madurez del SGC por Requisito ISO 9001")
+            st.subheader("2. Grado de conformidad del SGC por Requisito ISO 9001")
             req_stats = compute_requirement_stats(df_filtered)
             fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=[ISO_TINTA], text_auto='.1f')
             fig_req.update_layout(yaxis_range=[0, 110])
