@@ -24,6 +24,7 @@ from utils import (
     compute_auditor_comparison,
     load_horas_data,
     append_participacion,
+    update_participacion,
     PROCESOS_SGC,
     ROLES_AUDITOR,
     ROLES_DESCRIPCION,
@@ -997,7 +998,7 @@ elif opcion == "HORAS":
         st.info("Verifica que existan las hojas **Horas_Base_2011_2025**, **Participaciones_2026** y **Reporte_Horas_2026** en el Google Sheet. Ejecuta: `python setup_horas_sheets.py`")
         st.stop()
 
-    tab_h1, tab_h2 = st.tabs(["Registrar Horas", "Ver Reporte"])
+    tab_h1, tab_h2, tab_h3 = st.tabs(["Registrar Horas", "Editar Registro", "Ver Reporte"])
 
     # --- TAB 1: REGISTRAR PARTICIPACIÓN ---
     with tab_h1:
@@ -1073,10 +1074,140 @@ elif opcion == "HORAS":
         if df_part.empty:
             st.info("Aún no hay participaciones registradas en 2026.")
         else:
-            st.dataframe(df_part.tail(15).iloc[::-1], use_container_width=True, hide_index=True)
+            st.dataframe(df_part.drop(columns=["__sheet_row"], errors="ignore").tail(15).iloc[::-1], use_container_width=True, hide_index=True)
 
-    # --- TAB 2: REPORTE ACUMULADO ---
+    # --- TAB 2: EDITAR PARTICIPACION ---
     with tab_h2:
+        st.subheader("Editar Participacion Registrada")
+
+        if df_part.empty:
+            st.info("Aun no hay participaciones registradas en 2026.")
+        else:
+            df_edit = df_part.copy()
+            df_edit["__sheet_row"] = pd.to_numeric(df_edit["__sheet_row"], errors="coerce").astype("Int64")
+            df_edit = df_edit.dropna(subset=["__sheet_row"]).copy()
+            df_edit["__label"] = df_edit.apply(
+                lambda r: f"Fila {int(r['__sheet_row'])} | {r.get('Fecha', '')} | {r.get('Auditor', '')} | {r.get('Rol', '')} | {float(r.get('Horas', 0)):.1f} h | {r.get('Proceso', '')}",
+                axis=1
+            )
+
+            selected_label = st.selectbox(
+                "Registro a editar:",
+                df_edit["__label"].iloc[::-1].tolist(),
+                key="edit_horas_registro"
+            )
+            selected_row = df_edit[df_edit["__label"] == selected_label].iloc[0]
+
+            with st.form("form_editar_horas"):
+                eh1, eh2 = st.columns(2)
+                with eh1:
+                    e_fecha_actual = pd.to_datetime(selected_row.get("Fecha"), errors="coerce")
+                    e_fecha_default = e_fecha_actual.date() if pd.notna(e_fecha_actual) else datetime.now().date()
+                    e_fecha = st.date_input("Fecha de la auditoria:", e_fecha_default, key="edit_horas_fecha")
+                    e_proceso = st.selectbox(
+                        "Proceso auditado:",
+                        PROCESOS_SGC,
+                        index=PROCESOS_SGC.index(selected_row.get("Proceso")) if selected_row.get("Proceso") in PROCESOS_SGC else 0,
+                        key="edit_horas_proceso"
+                    )
+                    e_auditor = st.selectbox(
+                        "Auditor:",
+                        lista_auditores,
+                        index=lista_auditores.index(selected_row.get("Auditor")) if selected_row.get("Auditor") in lista_auditores else 0,
+                        key="edit_horas_auditor"
+                    )
+                with eh2:
+                    e_rol = st.selectbox(
+                        "Rol desempenado:",
+                        ROLES_AUDITOR,
+                        index=ROLES_AUDITOR.index(selected_row.get("Rol")) if selected_row.get("Rol") in ROLES_AUDITOR else 0,
+                        format_func=lambda r: f"{r} - {ROLES_DESCRIPCION[r]}",
+                        key="edit_horas_rol"
+                    )
+                    e_horas = st.number_input(
+                        "Horas:",
+                        min_value=0.1,
+                        max_value=24.0,
+                        value=float(selected_row.get("Horas", 8.0) or 8.0),
+                        step=0.5,
+                        format="%.1f",
+                        key="edit_horas_horas"
+                    )
+                e_obs = st.text_area(
+                    "Observaciones (opcional):",
+                    value=str(selected_row.get("Observaciones", "")),
+                    height=80,
+                    key="edit_horas_obs"
+                )
+
+                if st.form_submit_button("Guardar Cambios"):
+                    validation_errors = []
+
+                    try:
+                        validate_required(e_auditor, "Auditor")
+                        validate_required(e_proceso, "Proceso")
+                    except ValidationError as e:
+                        validation_errors.append(str(e))
+
+                    if not validation_errors and (e_horas < 0.1 or e_horas > 24.0):
+                        validation_errors.append("Las horas deben estar entre 0.1 y 24.0 horas")
+
+                    if not validation_errors and e_fecha > datetime.now().date():
+                        validation_errors.append("La fecha de auditoria no puede ser en el futuro")
+
+                    if not validation_errors and e_fecha < datetime.now().date() - timedelta(days=365):
+                        validation_errors.append("La fecha de auditoria no puede ser mas de un ano en el pasado")
+
+                    if validation_errors:
+                        for error in validation_errors:
+                            st.error(error)
+                    else:
+                        st.session_state["confirm_horas_edit"] = {
+                            "row_number": int(selected_row["__sheet_row"]),
+                            "fecha": e_fecha,
+                            "proceso": e_proceso,
+                            "auditor": e_auditor,
+                            "rol": e_rol,
+                            "horas": e_horas,
+                            "observaciones": e_obs,
+                        }
+
+            pending_edit = st.session_state.get("confirm_horas_edit")
+            if pending_edit:
+                st.warning(
+                    f"Confirmar cambio fila {pending_edit['row_number']}: "
+                    f"{pending_edit['auditor']} | {pending_edit['rol']} | {pending_edit['horas']:.1f} h | {pending_edit['proceso']}"
+                )
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    if st.button("Confirmar cambios", key="confirm_horas_edit_yes", use_container_width=True):
+                        try:
+                            with st.spinner("Actualizando participacion en Google Sheets..."):
+                                fila = update_participacion(
+                                    pending_edit["row_number"],
+                                    pending_edit["fecha"],
+                                    pending_edit["proceso"],
+                                    pending_edit["auditor"],
+                                    pending_edit["rol"],
+                                    pending_edit["horas"],
+                                    pending_edit["observaciones"],
+                                )
+                            st.success(f"Participacion actualizada: fila {fila}")
+                            st.session_state["confirm_horas_edit"] = None
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error al guardar: {str(e)}")
+                with col_e2:
+                    if st.button("Cancelar", key="confirm_horas_edit_no", use_container_width=True):
+                        st.session_state["confirm_horas_edit"] = None
+                        st.rerun()
+
+            st.divider()
+            st.subheader("Registros Disponibles")
+            st.dataframe(df_edit.drop(columns=["__sheet_row", "__label"], errors="ignore").tail(30).iloc[::-1], use_container_width=True, hide_index=True)
+
+    # --- TAB 3: REPORTE ACUMULADO ---
+    with tab_h3:
         st.subheader("Reporte de Horas Acumuladas")
 
         if df_reporte.empty:
@@ -1138,7 +1269,7 @@ elif opcion == "HORAS":
             with pd.ExcelWriter(buffer_h, engine='openpyxl') as writer:
                 df_rep.to_excel(writer, sheet_name='Reporte Horas', index=False)
                 if not df_part.empty:
-                    df_part.to_excel(writer, sheet_name='Participaciones 2026', index=False)
+                    df_part.drop(columns=["__sheet_row"], errors="ignore").to_excel(writer, sheet_name='Participaciones 2026', index=False)
             st.download_button(
                 label="Descargar Reporte de Horas (XLSX)",
                 data=buffer_h.getvalue(),

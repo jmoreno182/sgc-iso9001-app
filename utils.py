@@ -253,8 +253,11 @@ def load_horas_data() -> Tuple[pd.DataFrame, pd.DataFrame, list]:
     # Participaciones: filas 2-1000 tienen fórmulas en A y C, filtrar por Fecha (col B)
     raw = sh.worksheet("Participaciones_2026").get_all_values()
     header = raw[0] if raw else []
-    rows = [r for r in raw[1:] if len(r) > 1 and str(r[1]).strip() != ""]
+    sheet_rows = [(i, r) for i, r in enumerate(raw[1:], start=2) if len(r) > 1 and str(r[1]).strip() != ""]
+    rows = [r for _, r in sheet_rows]
     df_part = pd.DataFrame(rows, columns=header) if rows else pd.DataFrame(columns=header)
+    if not df_part.empty:
+        df_part["__sheet_row"] = [row_num for row_num, _ in sheet_rows]
     if not df_part.empty:
         df_part["Horas"] = pd.to_numeric(df_part["Horas"].astype(str).str.replace(",", "."), errors="coerce").fillna(0.0)
 
@@ -287,6 +290,30 @@ def append_participacion(fecha, proceso: str, auditor: str, rol: str, horas: flo
          "values": [[proceso, auditor, rol, float(horas), observaciones.strip()]]},
     ], value_input_option="USER_ENTERED")
     return next_row
+
+
+def update_participacion(row_number: int, fecha, proceso: str, auditor: str, rol: str, horas: float, observaciones: str = "") -> int:
+    """Update one participation row in Participaciones_2026.
+
+    Writes only columns B (Fecha), D-H; columns A (ID) and C (Periodo)
+    are auto-calculated by sheet formulas. Returns the row number updated.
+    """
+    row_number = int(row_number)
+    if row_number < 2:
+        raise ValidationError("Fila de participacion invalida")
+    if not (0 < float(horas) <= 24):
+        raise ValidationError("Horas debe estar entre 0.1 y 24.0")
+
+    sh = _connect_gsheets()
+    ws = sh.worksheet("Participaciones_2026")
+
+    fecha_str = fecha.strftime("%Y-%m-%d") if hasattr(fecha, "strftime") else str(fecha)
+    ws.batch_update([
+        {"range": f"B{row_number}", "values": [[fecha_str]]},
+        {"range": f"D{row_number}:H{row_number}",
+         "values": [[proceso, auditor, rol, float(horas), observaciones.strip()]]},
+    ], value_input_option="USER_ENTERED")
+    return row_number
 
 
 def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
