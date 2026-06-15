@@ -103,21 +103,21 @@ def load_gsheets_data(max_retries: int = 3) -> Tuple[pd.DataFrame, pd.DataFrame]
             df_sac = df_sac.rename(columns=sac_cols_map)
 
             if df_matriz.empty:
-                st.warning("⚠️ Hoja 'Matriz' vacía. Inicia ingresando requisitos.")
+                st.warning("Hoja 'Matriz' vacía. Inicia ingresando requisitos.")
 
             if not df_sac.empty and 'id' not in df_sac.columns:
-                st.warning("⚠️ Hoja 'SAC_OM' falta columna 'id'.")
+                st.warning("Hoja 'SAC_OM' falta columna 'id'.")
 
             try:
                 df_matriz['id'] = pd.to_numeric(df_matriz['id'], errors='coerce').fillna(0).astype(int)
             except Exception as e:
-                st.warning(f"⚠️ Columna 'id' en Matriz contiene datos inválidos: {e}")
+                st.warning(f"Columna 'id' en Matriz contiene datos inválidos: {e}")
 
             if not df_sac.empty:
                 try:
                     df_sac['id'] = pd.to_numeric(df_sac['id'], errors='coerce').fillna(0).astype(int)
                 except Exception as e:
-                    st.warning(f"⚠️ Columna 'id' en SAC_OM contiene datos inválidos: {e}")
+                    st.warning(f"Columna 'id' en SAC_OM contiene datos inválidos: {e}")
 
             return df_matriz, df_sac
 
@@ -128,10 +128,10 @@ def load_gsheets_data(max_retries: int = 3) -> Tuple[pd.DataFrame, pd.DataFrame]
             traceback.print_exc()
 
             if attempt < max_retries - 1:
-                st.warning(f"⚠️ Intento {attempt + 1}/{max_retries} falló. Reintentando...")
+                st.warning(f"Intento {attempt + 1}/{max_retries} falló. Reintentando...")
                 continue
             else:
-                st.error(f"❌ Error Google Sheets (intento {max_retries}/{max_retries}):")
+                st.error(f"Error Google Sheets (intento {max_retries}/{max_retries}):")
                 st.error(error_msg)
                 st.info("**Debug:** Revisa console para más detalles")
                 raise
@@ -316,26 +316,33 @@ def update_participacion(row_number: int, fecha, proceso: str, auditor: str, rol
     return row_number
 
 
+def _column_label(index: int) -> str:
+    """Convert a 1-based column index to a Google Sheets column label."""
+    if index < 1:
+        raise ValueError("Column index must be >= 1")
+
+    label = ""
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        label = chr(65 + remainder) + label
+    return label
+
+
 def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
-    """Update worksheet in Google Sheets with new data."""
-    import gspread
-    from google.oauth2.service_account import Credentials
-    import re
+    """Update worksheet values without clearing formatting, formulas or validation."""
+    if data is None:
+        raise ValueError("DataFrame requerido")
 
-    sheet_url = st.secrets.get("connections", {}).get("gsheets", {}).get("spreadsheet", "")
-    if not sheet_url:
-        raise ValueError("No spreadsheet URL in secrets")
-
-    sheet_id = re.search(r'/d/([a-zA-Z0-9-_]+)', sheet_url).group(1)
-
-    creds_dict = st.secrets.get("GOOGLE_SERVICE_ACCOUNT_INFO")
-    if not creds_dict:
-        raise ValueError("No GOOGLE_SERVICE_ACCOUNT_INFO in secrets")
-
-    creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    gc = gspread.authorize(creds)
-    sh = gc.open_by_key(sheet_id)
+    sh = _connect_gsheets()
     ws = sh.worksheet(worksheet_name)
 
-    ws.clear()
-    ws.append_rows([data.columns.tolist()] + data.values.tolist(), value_input_option="USER_ENTERED")
+    values = [data.columns.tolist()] + data.fillna("").values.tolist()
+    if not values or not values[0]:
+        raise ValueError("DataFrame sin columnas")
+
+    last_col = _column_label(len(values[0]))
+    last_row = len(values)
+    ws.batch_update(
+        [{"range": f"A1:{last_col}{last_row}", "values": values}],
+        value_input_option="USER_ENTERED",
+    )

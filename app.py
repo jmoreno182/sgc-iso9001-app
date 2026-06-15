@@ -30,155 +30,143 @@ from utils import (
     ROLES_DESCRIPCION,
 )
 
+ISO_TINTA = "#1E3A5F"
+ISO_TINTA_FUERTE = "#10233A"
+ISO_CONFORME = "#287A4D"
+ISO_NO_CONFORME = "#B42318"
+ISO_PENDIENTE = "#A16207"
+ISO_TEXTO_TENUE = "#76808C"
+
 # ==========================================
 # PLOTLY TEMPLATE PERSONALIZADO
 # ==========================================
 def apply_iso_theme(fig):
-    """Aplica tema ISO 9001 personalizado a gráficos Plotly."""
+    """Apply the institutional ISO 9001 theme to Plotly charts."""
     fig.update_layout(
-        font=dict(family="Roboto, sans-serif", size=12, color="#374151"),
+        font=dict(family="Source Sans 3, sans-serif", size=12, color="#1C1E21"),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(255,255,255,0)',
         xaxis=dict(
             showgrid=True,
             gridwidth=1,
-            gridcolor='rgba(229,231,235,0.5)',
+            gridcolor='rgba(28,30,33,0.08)',
             zeroline=False,
             showline=True,
             linewidth=1,
-            linecolor='#E5E7EB'
+            linecolor='rgba(28,30,33,0.14)'
         ),
         yaxis=dict(
             showgrid=True,
             gridwidth=1,
-            gridcolor='rgba(229,231,235,0.5)',
+            gridcolor='rgba(28,30,33,0.08)',
             zeroline=False,
             showline=True,
             linewidth=1,
-            linecolor='#E5E7EB'
+            linecolor='rgba(28,30,33,0.14)'
         ),
         margin=dict(l=50, r=50, t=50, b=50),
         hovermode='x unified',
-        transition=dict(duration=300),
+        transition=dict(duration=180),
     )
     return fig
 
 # ==========================================
-# CONFIGURACIÓN DE LA PÁGINA Y ESTILO AZUL
+# CONFIGURACION DE PAGINA Y SISTEMA VISUAL
 # ==========================================
 st.set_page_config(
-    page_title="Gestión SGC - Google Sheets Cloud",
-    page_icon="📊",
+    page_title="Gestion SGC - Google Sheets Cloud",
+    page_icon=None,
     layout="wide",
 )
 
 st.markdown("""
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1F2937;
-            --accent: #3B82F6;
-            --success: #10B981;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --light-bg: #F9FAFB;
-            --border: #E5E7EB;
+            --tinta: #1E3A5F;
+            --tinta-fuerte: #10233A;
+            --papel: #FAFAF8;
+            --papel-elevado: #FFFFFF;
+            --formulario: #F1F0EC;
+            --linea-formulario: rgba(28, 30, 33, 0.14);
+            --linea-suave: rgba(28, 30, 33, 0.08);
+            --texto: #1C1E21;
+            --texto-secundario: #4D5661;
+            --texto-tenue: #76808C;
+            --sello-conforme: #287A4D;
+            --tinta-no-conforme: #B42318;
+            --expediente-pendiente: #A16207;
+            --control-bg: #F7F6F2;
+            --control-border: rgba(30, 58, 95, 0.22);
         }
 
         * {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         .main {
-            background-color: #FFFFFF;
+            background-color: var(--papel);
             padding: 0;
         }
 
         h1, h2, h3, h4, h5, h6 {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: #1F2937;
+            font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--tinta-fuerte);
             font-weight: 700;
-            letter-spacing: -0.5px;
+            letter-spacing: 0;
         }
 
-        h1 {
-            font-size: clamp(1.5rem, 5vw, 2.5rem);
-            margin-bottom: clamp(0.25rem, 2vw, 0.75rem);
-        }
-        h2 {
-            font-size: clamp(1.125rem, 3.5vw, 1.875rem);
-            margin-top: clamp(0.75rem, 2vw, 1.5rem);
-            margin-bottom: clamp(0.5rem, 1.5vw, 1rem);
-        }
-        h3 {
-            font-size: clamp(0.75rem, 2vw, 1.125rem);
-            margin-bottom: clamp(0.25rem, 1vw, 0.75rem);
-        }
+        h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.45rem; margin-top: 1.25rem; margin-bottom: 0.75rem; }
+        h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--tinta); }
 
         .stButton>button {
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-            color: white;
-            border-radius: 8px;
-            border: none;
-            padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
-            font-size: clamp(0.8rem, 2vw, 1rem);
+            font-family: 'Source Sans 3', sans-serif;
+            background: var(--tinta);
+            color: #FFFFFF;
+            border-radius: 6px;
+            border: 1px solid rgba(16, 35, 58, 0.18);
+            padding: 0.58rem 1rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+            transition: background-color 160ms ease-in-out, border-color 160ms ease-in-out;
+            box-shadow: none;
         }
 
         .stButton>button:hover {
-            background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(59, 130, 246, 0.35);
+            background: var(--tinta-fuerte);
+            border-color: rgba(16, 35, 58, 0.35);
+            color: #FFFFFF;
         }
 
-        .stButton>button:active {
-            transform: translateY(0);
-        }
+        .stButton>button:focus { box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.18); }
 
-        /* Mobile responsiveness */
         @media (max-width: 768px) {
             h1 { font-size: 1.75rem; }
             h2 { font-size: 1.25rem; }
             h3 { font-size: 1rem; }
-            .metric-card {
-                padding: 1rem;
-                margin-bottom: 0.75rem;
-            }
-            .metric-card h2 {
-                font-size: 2rem;
-            }
+            .metric-card { padding: 0.9rem; margin-bottom: 0.75rem; }
+            .metric-card h2 { font-size: 1.8rem; }
         }
 
         @media (max-width: 480px) {
             h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
             h2 { font-size: 1.125rem; }
-            .stButton>button {
-                padding: 0.5rem 1rem;
-                font-size: 0.875rem;
-            }
-            .metric-card {
-                padding: 0.75rem;
-            }
-            .metric-card h3 {
-                font-size: 0.75rem;
-            }
-            .metric-card h2 {
-                font-size: 1.5rem;
-            }
+            .stButton>button { padding: 0.5rem 1rem; font-size: 0.875rem; }
+            .metric-card { padding: 0.75rem; }
+            .metric-card h3 { font-size: 0.75rem; }
+            .metric-card h2 { font-size: 1.5rem; }
         }
 
         .metric-card {
-            background: linear-gradient(135deg, #FFFFFF 0%, #F3F4F6 100%);
-            padding: clamp(0.75rem, 3vw, 1.5rem);
-            border-radius: 12px;
-            border: 1px solid #E5E7EB;
-            border-left: 4px solid #3B82F6;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-            transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            min-height: clamp(100px, 15vh, 180px);
+            background: var(--papel-elevado);
+            padding: 1.1rem 1.2rem;
+            border-radius: 6px;
+            border: 1px solid var(--linea-formulario);
+            border-left: 3px solid var(--tinta);
+            box-shadow: none;
+            transition: border-color 160ms ease-in-out, background-color 160ms ease-in-out;
+            min-height: 126px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -186,100 +174,89 @@ st.markdown("""
             overflow: hidden;
         }
 
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0) 100%);
-            pointer-events: none;
+        .metric-card:hover {
+            background: #FDFDFC;
+            border-color: rgba(30, 58, 95, 0.24);
         }
 
-        .metric-card:hover {
-            box-shadow: 0 12px 28px rgba(59, 130, 246, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
-            transform: translateY(-4px);
-            border-left-color: #2563EB;
+        .metric-card.primary {
+            min-height: 168px;
+            border-left-width: 5px;
+            background: #FFFFFF;
         }
+
+        .metric-card.compact { min-height: 112px; }
 
         .metric-card h3 {
-            color: #6B7280;
-            font-family: 'Poppins', sans-serif;
-            font-size: clamp(0.65rem, 1.5vw, 0.875rem);
+            color: var(--texto-secundario);
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 0.78rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: clamp(0.25rem, 1vw, 0.5rem);
+            letter-spacing: 0.04em;
+            margin-bottom: 0.4rem;
             margin-top: 0;
             position: relative;
             z-index: 1;
         }
 
         .metric-card h2 {
-            color: #1F2937;
-            font-family: 'Poppins', sans-serif;
-            font-size: clamp(1.5rem, 4vw, 2.25rem);
-            margin: clamp(0.15rem, 0.5vw, 0.35rem) 0;
-            line-height: 1.2;
+            color: var(--texto);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 2rem;
+            margin: 0.15rem 0;
+            line-height: 1.12;
             font-weight: 700;
             position: relative;
             z-index: 1;
+            font-variant-numeric: tabular-nums;
         }
 
+        .metric-card.primary h2 { font-size: 2.7rem; }
+
         .metric-card p {
-            color: #9CA3AF;
-            font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+            color: var(--texto-tenue);
+            font-size: 0.88rem;
             margin: 0;
             position: relative;
             z-index: 1;
         }
 
-        hr { border-color: #E5E7EB; margin: 2rem 0; }
+        hr { border-color: var(--linea-suave); margin: 1.5rem 0; }
 
         [data-testid="stExpander"] {
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
-            transition: all 0.25s ease;
+            border: 1px solid var(--linea-formulario);
+            border-radius: 6px;
+            transition: border-color 160ms ease-in-out;
         }
 
-        [data-testid="stExpander"]:hover {
-            border-color: #3B82F6;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-        }
+        [data-testid="stExpander"]:hover { border-color: var(--control-border); }
 
         .stDataFrame {
-            border: 1px solid #E5E7EB;
-            border-radius: 8px;
+            border: 1px solid var(--linea-formulario);
+            border-radius: 6px;
             overflow: hidden;
         }
 
-        .stInfo, .stWarning, .stError {
-            border-radius: 8px;
-            padding: 1rem;
-        }
+        .stInfo, .stWarning, .stError { border-radius: 6px; padding: 0.9rem; }
+        .stMarkdown { color: var(--texto); line-height: 1.55; }
 
-        .stMarkdown {
-            color: #374151;
-            line-height: 1.6;
-        }
-
-        /* Sidebar enhancement */
         [data-testid="stSidebar"] {
-            background: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%);
+            background: var(--papel);
+            border-right: 1px solid var(--linea-suave);
         }
 
         [data-testid="stSidebar"] h1 {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Source Sans 3', sans-serif;
             font-weight: 700;
-            background: linear-gradient(135deg, #1F2937 0%, #3B82F6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--tinta-fuerte);
         }
 
-        [data-testid="stSidebar"] [role="radiogroup"] {
-            gap: 0.5rem;
+        [data-testid="stSidebar"] [role="radiogroup"] { gap: 0.5rem; }
+
+        input, textarea, [data-baseweb="select"] > div {
+            background-color: var(--control-bg);
+            border-color: var(--control-border);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -290,7 +267,7 @@ st.markdown("""
 # Nota: La URL del spreadsheet se configura en los Secrets de Streamlit
 
 if "GOOGLE_SERVICE_ACCOUNT_INFO" not in st.secrets:
-    st.warning("⚠️ **Aplicación en modo configuración**")
+    st.warning("Aplicacion en modo configuracion")
     st.info("""
     ### Pasos para activar la aplicación:
 
@@ -323,16 +300,15 @@ except Exception as e:
 # ==========================================
 # Top navigation
 st.markdown("""
-    <div style="text-align: center; padding: 1rem 0; margin-bottom: 2rem; border-bottom: 2px solid #E5E7EB;">
-        <h1 style="margin: 0; font-family: 'Poppins', sans-serif; color: #1F2937;">
-            Auditoría Interna del SGC
+    <div style="text-align: center; padding: 0.75rem 0 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(28,30,33,.12);">
+        <h1 style="margin: 0; color: var(--tinta-fuerte); font-size: 1.9rem;">
+            Auditoria Interna del SGC
         </h1>
-        <p style="margin: 0.5rem 0 0 0; color: #6B7280; font-size: 0.9rem; font-style: italic;">
-            SGC ISO 9001:2015
+        <p style="margin: 0.35rem 0 0 0; color: var(--texto-secundario); font-size: 0.9rem;">
+            ISO 9001:2015 | Registro, seguimiento y evidencia
         </p>
     </div>
 """, unsafe_allow_html=True)
-
 # Initialize session state for module selection
 if "modulo" not in st.session_state:
     st.session_state.modulo = "ENTRADA"
@@ -421,23 +397,23 @@ if opcion == "ANÁLISIS":
         # Métricas (2+2 grid layout)
         row1_col1, row1_col2 = st.columns(2, gap="medium")
         with row1_col1:
-            trend_color = '#10B981' if trend['trend'] == '↑' else '#EF4444' if trend['trend'] == '↓' else '#6B7280'
-            st.markdown(f"<div class='metric-card'><h3>Conformidad Global</h3><h2>{stats['pct']:.1f}%</h2><p style='color: {trend_color}; font-size: 1.5rem;'>{trend['trend']} {abs(stats['pct'] - trend['previous']):.1f}p</p></div>", unsafe_allow_html=True)
+            trend_color = ISO_CONFORME if trend['trend'] == '↑' else ISO_NO_CONFORME if trend['trend'] == '↓' else ISO_TEXTO_TENUE
+            st.markdown(f"<div class='metric-card primary'><h3>Conformidad Global</h3><h2>{stats['pct']:.1f}%</h2><p style='color: {trend_color}; font-size: 1.1rem;'>{trend['trend']} {abs(stats['pct'] - trend['previous']):.1f}p</p></div>", unsafe_allow_html=True)
         with row1_col2:
-            st.markdown(f"<div class='metric-card'><h3>Requisitos Evaluados</h3><h2>{stats['total']}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='metric-card compact'><h3>Requisitos Evaluados</h3><h2>{stats['total']}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
 
         st.divider()
 
         row2_col1, row2_col2 = st.columns(2, gap="medium")
         with row2_col1:
             abiertos = len(df_sac[df_sac['estatus_plan']=='Abierto']) if not df_sac.empty else 0
-            sac_color = '#EF4444' if abiertos > 5 else '#F59E0B' if abiertos > 0 else '#10B981'
-            st.markdown(f"<div class='metric-card'><h3>SAC/OM Abiertos</h3><h2 style='color: {sac_color};'>{abiertos}</h2><p>Pendientes por verificar</p></div>", unsafe_allow_html=True)
+            sac_color = ISO_NO_CONFORME if abiertos > 5 else ISO_PENDIENTE if abiertos > 0 else ISO_CONFORME
+            st.markdown(f"<div class='metric-card compact'><h3>SAC/OM Abiertos</h3><h2 style='color: {sac_color};'>{abiertos}</h2><p>Pendientes por verificar</p></div>", unsafe_allow_html=True)
         with row2_col2:
             auditor_comp = compute_auditor_comparison(df_filtered)
             if not auditor_comp.empty:
                 top_auditor = auditor_comp.loc[auditor_comp['Requisitos Evaluados'].idxmax()]
-                st.markdown(f"<div class='metric-card'><h3>Auditor Top</h3><h2>{top_auditor['Auditor']}</h2><p>{int(top_auditor['Requisitos Evaluados'])} requisitos</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-card compact'><h3>Auditor Top</h3><h2>{top_auditor['Auditor']}</h2><p>{int(top_auditor['Requisitos Evaluados'])} requisitos</p></div>", unsafe_allow_html=True)
 
         st.divider()
 
@@ -461,28 +437,28 @@ if opcion == "ANÁLISIS":
         st.subheader("1. Grado de Conformidad por Proceso Auditado")
         proc_stats = compute_process_stats(df_filtered)
 
-        fig_proc = px.bar(proc_stats, x='proceso_auditado', y='Conformidad', color_discrete_sequence=['#3B82F6'], text_auto='.1f')
-        fig_proc.add_hline(y=100, line_dash="dash", line_color="#EF4444", annotation_text="Meta SGC")
+        fig_proc = px.bar(proc_stats, x='proceso_auditado', y='Conformidad', color_discrete_sequence=[ISO_TINTA], text_auto='.1f')
+        fig_proc.add_hline(y=100, line_dash="dash", line_color=ISO_NO_CONFORME, annotation_text="Meta SGC")
         fig_proc.update_layout(yaxis_range=[0, 110])
         fig_proc = apply_iso_theme(fig_proc)
         st.plotly_chart(fig_proc, use_container_width=True)
-        
+
         # --- FILA PARA GRÁFICOS 2 Y 3 ---
         col_izq, col_der = st.columns(2)
         with col_izq:
             st.subheader("2. Madurez del SGC por Requisito ISO 9001")
             req_stats = compute_requirement_stats(df_filtered)
-            fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=['#2563EB'], text_auto='.1f')
+            fig_req = px.bar(req_stats, x='requisito_iso', y='Conformidad', color_discrete_sequence=[ISO_TINTA], text_auto='.1f')
             fig_req.update_layout(yaxis_range=[0, 110])
             fig_req = apply_iso_theme(fig_req)
             st.plotly_chart(fig_req, use_container_width=True)
-            
+
         with col_der:
             st.subheader("3. Distribución de Estatus de Acciones (SAC / OM)")
             if not df_sac.empty and 'tipo_plan' in df_sac.columns:
                 fig_sac = px.histogram(
                     df_sac, x='tipo_plan', color='estatus_plan', barmode='group',
-                    color_discrete_map={'Cerrado': '#10B981', 'Abierto': '#3B82F6', 'Pendiente verificar': '#F59E0B'}
+                    color_discrete_map={'Cerrado': ISO_CONFORME, 'Abierto': ISO_TINTA, 'Pendiente verificar': ISO_PENDIENTE}
                 )
                 fig_sac.update_layout(yaxis_title='Cantidad de Acciones')
                 fig_sac.update_traces(textposition='outside', texttemplate='%{y:.0f}')
@@ -501,7 +477,7 @@ if opcion == "ANÁLISIS":
 
             # Bar chart of unique process count
             fig_auditor = px.bar(auditor_count, x='auditor_responsable', y='Total Procesos Únicos',
-                                color_discrete_sequence=['#7C3AED'], text_auto='d')
+                                color_discrete_sequence=[ISO_TINTA], text_auto='d')
             fig_auditor.update_layout(xaxis_title='Auditor', yaxis_title='Procesos Únicos Auditados')
             fig_auditor = apply_iso_theme(fig_auditor)
             st.plotly_chart(fig_auditor, use_container_width=True)
@@ -537,7 +513,7 @@ if opcion == "ANÁLISIS":
                 # Gráfico comparativo
                 fig_comp = px.scatter(auditor_comp, x='Requisitos Evaluados', y='Conformidad',
                                      size='Requisitos Evaluados', text='Auditor',
-                                     color_discrete_sequence=['#3B82F6'],
+                                     color_discrete_sequence=[ISO_TINTA],
                                      labels={'Requisitos Evaluados': 'Productividad',
                                             'Conformidad': 'Conformidad (%)'})
                 fig_comp.update_layout(height=400)
@@ -833,7 +809,7 @@ elif opcion == "SEGUIMIENTO":
     st.divider()
 
     tab_s1, tab_s2 = st.tabs(["Acciones Abiertas", "Registrar Nueva"])
-    
+
     with tab_s1:
         if not df_sac.empty:
             # Búsqueda y filtros
@@ -869,7 +845,7 @@ elif opcion == "SEGUIMIENTO":
             idx_sac = df_sac[df_sac['id'] == id_sac].index[0]
             idx_sac = df_sac[df_sac['id'] == id_sac].index[0]
             fila_sac = df_sac.loc[idx_sac]
-            
+
             with st.form("form_edit_sac"):
                 st.write(f"**Código de Acción:** {fila_sac['codigo']} | **Proceso:** {fila_sac['proceso_auditado']}")
                 e_plan = st.selectbox("Estatus del Plan:", ["Abierto", "Cerrado"], index=0 if fila_sac['estatus_plan']=='Abierto' else 1)
@@ -908,7 +884,7 @@ elif opcion == "SEGUIMIENTO":
                         st.rerun()
         else:
             st.info("No hay planes de acción registrados en este momento.")
-            
+
     with tab_s2:
         st.subheader("Registrar Nueva Acción")
         with st.form("new_sac"):
@@ -922,7 +898,7 @@ elif opcion == "SEGUIMIENTO":
                 s_tipo = st.selectbox("Tipo Plan:", ["Acción Correctiva", "Oportunidad de mejora"])
                 s_cod = st.text_input("Código único SAC/OM:")
             s_obs = st.text_area("Detalles / Plan Propuesto:")
-            
+
             if st.form_submit_button("Registrar Apertura"):
                 validation_errors = []
 
@@ -1224,11 +1200,11 @@ elif opcion == "HORAS":
 
             k1, k2, k3 = st.columns(3, gap="medium")
             with k1:
-                st.markdown(f"<div class='metric-card'><h3>Horas 2026</h3><h2>{horas_2026:.1f}</h2><p>Total registradas este año</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-card primary'><h3>Horas 2026</h3><h2>{horas_2026:.1f}</h2><p>Total registradas este año</p></div>", unsafe_allow_html=True)
             with k2:
-                st.markdown(f"<div class='metric-card'><h3>Participaciones</h3><h2>{participaciones}</h2><p>Registros en 2026</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-card compact'><h3>Participaciones</h3><h2>{participaciones}</h2><p>Registros en 2026</p></div>", unsafe_allow_html=True)
             with k3:
-                st.markdown(f"<div class='metric-card'><h3>Auditores Activos</h3><h2>{activos}</h2><p>Con horas en 2026</p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='metric-card compact'><h3>Auditores Activos</h3><h2>{activos}</h2><p>Con horas en 2026</p></div>", unsafe_allow_html=True)
 
             st.divider()
 
@@ -1257,7 +1233,7 @@ elif opcion == "HORAS":
                 df_chart["Rol"] = df_chart["Rol"].str.replace("_Total", "")
                 fig_horas = px.bar(
                     df_chart, x="Auditor", y="Horas", color="Rol", barmode="stack",
-                    color_discrete_map={"OB": "#9CA3AF", "AF": "#F59E0B", "AD": "#3B82F6", "AL": "#10B981"},
+                    color_discrete_map={"OB": ISO_TEXTO_TENUE, "AF": ISO_PENDIENTE, "AD": ISO_TINTA, "AL": ISO_CONFORME},
                     title="Horas Acumuladas Totales por Auditor y Rol",
                 )
                 fig_horas = apply_iso_theme(fig_horas)
