@@ -21,7 +21,6 @@ from utils import (
     compute_requirement_stats,
     compute_auditor_stats,
     compute_conformidad_trend,
-    compute_auditor_comparison,
     load_horas_data,
     append_participacion,
     update_participacion,
@@ -487,25 +486,6 @@ if opcion == "ANÁLISIS":
                         hide_index=True
                     )
 
-            # Comparativas auditor vs auditor
-            st.write("---")
-            st.subheader("5. Comparativa: Productividad y Conformidad por Auditor")
-            auditor_comp = compute_auditor_comparison(df_filtered)
-            if not auditor_comp.empty:
-                # Tabla comparativa
-                st.write("**Tabla Comparativa de Auditores**")
-                auditor_comp_display = auditor_comp.sort_values('Requisitos Evaluados', ascending=False)
-                st.dataframe(auditor_comp_display, use_container_width=True, hide_index=True)
-
-                # Gráfico comparativo
-                fig_comp = px.scatter(auditor_comp, x='Requisitos Evaluados', y='Conformidad',
-                                     size='Requisitos Evaluados', text='Auditor',
-                                     color_discrete_sequence=[ISO_TINTA],
-                                     labels={'Requisitos Evaluados': 'Productividad',
-                                            'Conformidad': 'Conformidad (%)'})
-                fig_comp.update_layout(height=400)
-                fig_comp = apply_iso_theme(fig_comp)
-                st.plotly_chart(fig_comp, use_container_width=True)
         else:
             st.info("Sin datos de auditores para graficar.")
 
