@@ -389,6 +389,7 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
     # Requisitos Conforme (sin No Conforme ni OM específico)
     reqs_conforme = set()
     reqs_om = set()
+    reqs_sac_unique = set()
     sac_count = 0
 
     for req in df_eval['requisito_especifico'].unique():
@@ -399,6 +400,7 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
                            (df_req['cumplimiento'] == 'Conforme')).any()
 
         if has_no_conforme:
+            reqs_sac_unique.add(req)
             # Count SACs: 1 per requisito, but count as 2 if appears in exactly 2 processes
             df_nc = df_req[df_req['cumplimiento'].str.contains('No', case=False, na=False)]
             procesos_nc = df_nc['proceso_auditado'].nunique()
@@ -412,11 +414,13 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
         else:
             reqs_conforme.add(req)
 
-    pct_conforme = (len(reqs_conforme) / total_reqs * 100) if total_reqs > 0 else 0
+    # Conforme: mathematically consistent with SAC and OM counts
+    conforme_count = total_reqs - sac_count - len(reqs_om)
+    pct_conforme = (conforme_count / total_reqs * 100) if total_reqs > 0 else 0
 
     return {
         'total': total_reqs,
-        'conforme': len(reqs_conforme),
+        'conforme': conforme_count,
         'sac': sac_count,
         'om': len(reqs_om),
         'pct_conforme': round(pct_conforme, 1)
