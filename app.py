@@ -520,10 +520,10 @@ if opcion == "ANÁLISIS":
                             fig_pie.update_layout(
                                 title=f"{tipo}",
                                 font=dict(size=11),
-                                legend=dict(x=0.5, y=-0.1, orientation='h'),
-                                margin=dict(t=50, b=80, l=20, r=20)
+                                legend=dict(x=0.5, y=-0.15, orientation='h', xanchor='center'),
+                                margin=dict(t=50, b=100, l=20, r=20)
                             )
-                            fig_pie.update_traces(textinfo='label+value')
+                            fig_pie.update_traces(textinfo='value', textposition='inside')
 
                             st.plotly_chart(fig_pie, use_container_width=True)
             else:
