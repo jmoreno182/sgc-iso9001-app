@@ -349,3 +349,68 @@ def update_gsheets(worksheet_name: str, data: pd.DataFrame) -> None:
         [{"range": f"A1:{last_col}{last_row}", "values": values}],
         value_input_option="USER_ENTERED",
     )
+
+
+@st.cache_data
+def compute_global_conformidad(df: pd.DataFrame) -> dict:
+    """Conformidad Global: Hallazgos Conforme / Total hallazgos evaluados."""
+    df_eval = df[df['tipo_hallazgo'].notna() & (df['tipo_hallazgo'] != '')]
+    df_eval = df_eval[~df_eval['cumplimiento'].isin(['nan', ''])]
+
+    total = len(df_eval)
+    conforme = (df_eval['cumplimiento'] == 'Conforme').sum()
+    pct = (conforme / total * 100) if total > 0 else 0
+
+    return {'conforme': conforme, 'total': total, 'pct': round(pct, 1)}
+
+
+@st.cache_data
+def compute_procesos_auditados(df: pd.DataFrame) -> dict:
+    """Procesos auditados únicos."""
+    procesos_unicos = df[
+        df['proceso_auditado'].notna() & (df['proceso_auditado'] != '')
+    ]['proceso_auditado'].nunique()
+
+    total_procesos = len(PROCESOS_SGC)
+    pct = (procesos_unicos / total_procesos * 100) if total_procesos > 0 else 0
+
+    return {'auditados': procesos_unicos, 'total': total_procesos, 'pct': round(pct, 1)}
+
+
+@st.cache_data
+def compute_requisitos_stats(df: pd.DataFrame) -> dict:
+    """Requisitos específicos sin repetir y sus clasificaciones."""
+    df_eval = df[df['tipo_hallazgo'].notna() & (df['tipo_hallazgo'] != '')]
+    df_eval = df_eval[df_eval['requisito_especifico'].notna() & (df_eval['requisito_especifico'] != '')]
+
+    # Total requisitos únicos
+    total_reqs = df_eval['requisito_especifico'].nunique()
+
+    # Requisitos Conforme (sin No Conforme ni OM específico)
+    reqs_conforme = set()
+    reqs_sac = set()
+    reqs_om = set()
+
+    for req in df_eval['requisito_especifico'].unique():
+        df_req = df_eval[df_eval['requisito_especifico'] == req]
+        has_no_conforme = (df_req['cumplimiento'].str.contains('No', case=False, na=False)).any()
+        has_om = (df_req['tipo_hallazgo'] == 'Oportunidad de mejora').any()
+        has_om_conforme = ((df_req['tipo_hallazgo'] == 'Oportunidad de mejora') &
+                           (df_req['cumplimiento'] == 'Conforme')).any()
+
+        if has_no_conforme:
+            reqs_sac.add(req)
+        elif has_om_conforme:
+            reqs_om.add(req)
+        else:
+            reqs_conforme.add(req)
+
+    pct_conforme = (len(reqs_conforme) / total_reqs * 100) if total_reqs > 0 else 0
+
+    return {
+        'total': total_reqs,
+        'conforme': len(reqs_conforme),
+        'sac': len(reqs_sac),
+        'om': len(reqs_om),
+        'pct_conforme': round(pct_conforme, 1)
+    }

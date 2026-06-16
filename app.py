@@ -20,6 +20,9 @@ from utils import (
     compute_process_stats,
     compute_requirement_stats,
     compute_conformidad_trend,
+    compute_global_conformidad,
+    compute_procesos_auditados,
+    compute_requisitos_stats,
     load_horas_data,
     append_participacion,
     update_participacion,
@@ -392,13 +395,29 @@ if opcion == "ANÁLISIS":
     if stats['total'] == 0:
         st.info("Sin datos para mostrar. Agrega requisitos en 'Matriz de Hallazgos'.")
     else:
-        # Metricas principales
-        row1_col1, row1_col2 = st.columns(2, gap="medium")
-        with row1_col1:
-            trend_color = ISO_CONFORME if trend['trend'] == '↑' else ISO_NO_CONFORME if trend['trend'] == '↓' else ISO_TEXTO_TENUE
-            st.markdown(f"<div class='metric-card primary'><h3>Conformidad Global</h3><h2>{stats['pct']:.1f}%</h2><p style='color: {trend_color}; font-size: 1.1rem;'>{trend['trend']} {abs(stats['pct'] - trend['previous']):.1f}p</p></div>", unsafe_allow_html=True)
-        with row1_col2:
-            st.markdown(f"<div class='metric-card compact'><h3>Requisitos Evaluados</h3><h2>{stats['total']}</h2><p>Avance del Plan</p></div>", unsafe_allow_html=True)
+        # Nuevas métricas de tarjetas
+        global_conf = compute_global_conformidad(df_filtered)
+        procesos = compute_procesos_auditados(df_filtered)
+        requisitos = compute_requisitos_stats(df_filtered)
+
+        # FILA 1: Conformidad Global (PRIMARY)
+        st.markdown(f"<div class='metric-card primary'><h3>Conformidad Global</h3><h2>{global_conf['pct']}%</h2><p>{global_conf['conforme']} de {global_conf['total']} hallazgos evaluados</p></div>", unsafe_allow_html=True)
+
+        # FILA 2: Primeras 3 métricas
+        row2_col1, row2_col2, row2_col3 = st.columns(3, gap="medium")
+        with row2_col1:
+            st.markdown(f"<div class='metric-card compact'><h3>Procesos Auditados</h3><h2>{procesos['auditados']}/{procesos['total']}</h2><p>{procesos['pct']}%</p></div>", unsafe_allow_html=True)
+        with row2_col2:
+            st.markdown(f"<div class='metric-card compact'><h3>Requisitos Específicos</h3><h2>{requisitos['total']}</h2><p>sin repetir</p></div>", unsafe_allow_html=True)
+        with row2_col3:
+            st.markdown(f"<div class='metric-card compact'><h3>Conforme (Requisitos)</h3><h2>{requisitos['conforme']}</h2><p>{requisitos['pct_conforme']}%</p></div>", unsafe_allow_html=True)
+
+        # FILA 3: OM y SAC (2 espacios)
+        row3_col1, row3_col2 = st.columns(2, gap="medium")
+        with row3_col1:
+            st.markdown(f"<div class='metric-card compact'><h3>Oportunidad de Mejora</h3><h2>{requisitos['om']}</h2><p>requisitos</p></div>", unsafe_allow_html=True)
+        with row3_col2:
+            st.markdown(f"<div class='metric-card compact'><h3>SAC 2026</h3><h2>{requisitos['sac']}</h2><p>requisitos</p></div>", unsafe_allow_html=True)
 
         st.divider()
 
