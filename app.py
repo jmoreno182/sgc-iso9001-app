@@ -460,47 +460,72 @@ if opcion == "ANÁLISIS":
         with col_der:
             st.subheader("3. Distribución de Estatus de Acciones (SAC / OM)")
             if not df_sac.empty and 'tipo_plan' in df_sac.columns:
-                # Crear categoría de estatus desglosada para cerrados
-                df_sac_chart = df_sac.copy()
-                df_sac_chart['estatus_eficacia'] = df_sac_chart.apply(
-                    lambda row: (
-                        f"Cerrado - {row['estatus_la_eficacia']}"
-                        if row['estatus_plan'] == 'Cerrado' and pd.notna(row['estatus_la_eficacia']) and str(row['estatus_la_eficacia']).strip()
-                        else row['estatus_plan']
-                    ),
-                    axis=1
-                )
+                # Preparar datos para dos gráficos: SAC y OM
+                pie_cols = st.columns(2, gap="medium")
 
-                # Contar por tipo_plan y estatus_eficacia
-                df_chart_data = df_sac_chart.groupby(['tipo_plan', 'estatus_eficacia']).size().reset_index(name='count')
+                for col_idx, tipo in enumerate(['Acción Correctiva', 'Oportunidad de mejora']):
+                    with pie_cols[col_idx]:
+                        df_tipo = df_sac[df_sac['tipo_plan'] == tipo].copy()
 
-                # Definir orden y colores
-                estatus_order = [
-                    'Abierto',
-                    'Cerrado - Eficaz',
-                    'Cerrado - No eficac',
-                    'Cerrado - No Eficaz',
-                    'Cerrado - Pendiente por eficacia',
-                    'Pendiente verificar'
-                ]
-                color_map = {
-                    'Abierto': ISO_TINTA,
-                    'Cerrado - Eficaz': ISO_CONFORME,
-                    'Cerrado - No eficac': ISO_NO_CONFORME,
-                    'Cerrado - No Eficaz': ISO_NO_CONFORME,
-                    'Cerrado - Pendiente por eficacia': ISO_PENDIENTE,
-                    'Pendiente verificar': '#A16207'
-                }
+                        if not df_tipo.empty:
+                            # Normalizar eficacia (hay "Eficaz" y "eficaz", "No Eficaz" y "No eficac")
+                            df_tipo['estatus_la_eficacia'] = df_tipo['estatus_la_eficacia'].astype(str).str.strip()
+                            df_tipo['estatus_la_eficacia'] = df_tipo['estatus_la_eficacia'].str.replace(
+                                r'(?i)^no\s+eficac', 'No Eficaz', regex=True
+                            ).str.replace(
+                                r'(?i)^eficaz?$', 'Eficaz', regex=True
+                            )
 
-                fig_sac = px.bar(
-                    df_chart_data, x='tipo_plan', y='count', color='estatus_eficacia',
-                    barmode='group', color_discrete_map=color_map,
-                    category_orders={'estatus_eficacia': estatus_order}
-                )
-                fig_sac.update_layout(yaxis_title='Cantidad de Acciones', legend_title='Estatus')
-                fig_sac.update_traces(textposition='outside', texttemplate='%{y:.0f}')
-                fig_sac = apply_iso_theme(fig_sac)
-                st.plotly_chart(fig_sac, use_container_width=True)
+                            # Crear categoría: Estatus + Eficacia
+                            df_tipo['categoria'] = df_tipo.apply(
+                                lambda row: (
+                                    f"Cerrado - {row['estatus_la_eficacia']}"
+                                    if row['estatus_plan'] == 'Cerrado' and pd.notna(row['estatus_la_eficacia']) and str(row['estatus_la_eficacia']).strip()
+                                    else row['estatus_plan']
+                                ),
+                                axis=1
+                            )
+
+                            # Contar
+                            categoria_counts = df_tipo['categoria'].value_counts().reset_index()
+                            categoria_counts.columns = ['categoria', 'cantidad']
+
+                            # Orden y colores
+                            orden = [
+                                'Abierto',
+                                'Cerrado - Eficaz',
+                                'Cerrado - No Eficaz',
+                                'Cerrado - Pendiente por eficacia'
+                            ]
+                            color_map_pie = {
+                                'Abierto': ISO_TINTA,
+                                'Cerrado - Eficaz': ISO_CONFORME,
+                                'Cerrado - No Eficaz': ISO_NO_CONFORME,
+                                'Cerrado - Pendiente por eficacia': ISO_PENDIENTE
+                            }
+
+                            # Filtrar para orden
+                            categoria_counts = categoria_counts[categoria_counts['categoria'].isin(orden)]
+                            categoria_counts['categoria'] = pd.Categorical(
+                                categoria_counts['categoria'], categories=orden, ordered=True
+                            )
+                            categoria_counts = categoria_counts.sort_values('categoria')
+
+                            # Gráfico de pie
+                            fig_pie = px.pie(
+                                categoria_counts, values='cantidad', names='categoria',
+                                hole=0.4, color='categoria',
+                                color_discrete_map=color_map_pie
+                            )
+                            fig_pie.update_layout(
+                                title=f"{tipo}",
+                                font=dict(size=11),
+                                legend=dict(x=0.5, y=-0.1, orientation='h'),
+                                margin=dict(t=50, b=80, l=20, r=20)
+                            )
+                            fig_pie.update_traces(textinfo='label+value')
+
+                            st.plotly_chart(fig_pie, use_container_width=True)
             else:
                 st.info("Sin registros en la tabla SAC_OM para graficar.")
 
