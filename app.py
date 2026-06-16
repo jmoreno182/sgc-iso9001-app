@@ -395,10 +395,10 @@ if opcion == "ANÁLISIS":
     if stats['total'] == 0:
         st.info("Sin datos para mostrar. Agrega requisitos en 'Matriz de Hallazgos'.")
     else:
-        # Nuevas métricas de tarjetas
-        global_conf = compute_global_conformidad(df_filtered)
-        procesos = compute_procesos_auditados(df_filtered)
-        requisitos = compute_requisitos_stats(df_filtered)
+        # Nuevas métricas de tarjetas (sobre dataset completo, no filtrado)
+        global_conf = compute_global_conformidad(df_matriz)
+        procesos = compute_procesos_auditados(df_matriz)
+        requisitos = compute_requisitos_stats(df_matriz)
 
         # FILA 1: Conformidad Global (PRIMARY)
         st.markdown(f"<div class='metric-card primary'><h3>Conformidad Global</h3><h2>{global_conf['pct']}%</h2><p>{global_conf['conforme']} de {global_conf['total']} hallazgos evaluados</p></div>", unsafe_allow_html=True)
