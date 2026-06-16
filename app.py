@@ -460,11 +460,44 @@ if opcion == "ANÁLISIS":
         with col_der:
             st.subheader("3. Distribución de Estatus de Acciones (SAC / OM)")
             if not df_sac.empty and 'tipo_plan' in df_sac.columns:
-                fig_sac = px.histogram(
-                    df_sac, x='tipo_plan', color='estatus_plan', barmode='group',
-                    color_discrete_map={'Cerrado': ISO_CONFORME, 'Abierto': ISO_TINTA, 'Pendiente verificar': ISO_PENDIENTE}
+                # Crear categoría de estatus desglosada para cerrados
+                df_sac_chart = df_sac.copy()
+                df_sac_chart['estatus_eficacia'] = df_sac_chart.apply(
+                    lambda row: (
+                        f"Cerrado - {row['estatus_la_eficacia']}"
+                        if row['estatus_plan'] == 'Cerrado' and pd.notna(row['estatus_la_eficacia']) and str(row['estatus_la_eficacia']).strip()
+                        else row['estatus_plan']
+                    ),
+                    axis=1
                 )
-                fig_sac.update_layout(yaxis_title='Cantidad de Acciones')
+
+                # Contar por tipo_plan y estatus_eficacia
+                df_chart_data = df_sac_chart.groupby(['tipo_plan', 'estatus_eficacia']).size().reset_index(name='count')
+
+                # Definir orden y colores
+                estatus_order = [
+                    'Abierto',
+                    'Cerrado - Eficaz',
+                    'Cerrado - No eficac',
+                    'Cerrado - No Eficaz',
+                    'Cerrado - Pendiente por eficacia',
+                    'Pendiente verificar'
+                ]
+                color_map = {
+                    'Abierto': ISO_TINTA,
+                    'Cerrado - Eficaz': ISO_CONFORME,
+                    'Cerrado - No eficac': ISO_NO_CONFORME,
+                    'Cerrado - No Eficaz': ISO_NO_CONFORME,
+                    'Cerrado - Pendiente por eficacia': ISO_PENDIENTE,
+                    'Pendiente verificar': '#A16207'
+                }
+
+                fig_sac = px.bar(
+                    df_chart_data, x='tipo_plan', y='count', color='estatus_eficacia',
+                    barmode='group', color_discrete_map=color_map,
+                    category_orders={'estatus_eficacia': estatus_order}
+                )
+                fig_sac.update_layout(yaxis_title='Cantidad de Acciones', legend_title='Estatus')
                 fig_sac.update_traces(textposition='outside', texttemplate='%{y:.0f}')
                 fig_sac = apply_iso_theme(fig_sac)
                 st.plotly_chart(fig_sac, use_container_width=True)
