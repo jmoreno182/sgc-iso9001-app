@@ -389,9 +389,7 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
     # Requisitos Conforme (sin No Conforme ni OM específico)
     reqs_conforme = set()
     reqs_om = set()
-
-    # SAC: count requisito-proceso combinations with No Conforme
-    sac_combinations = set()
+    sac_count = 0
 
     for req in df_eval['requisito_especifico'].unique():
         df_req = df_eval[df_eval['requisito_especifico'] == req]
@@ -401,12 +399,14 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
                            (df_req['cumplimiento'] == 'Conforme')).any()
 
         if has_no_conforme:
-            # Count each requisito-proceso combination with No Conforme
+            # Count SACs: 1 per requisito, but count as 2 if appears in exactly 2 processes
             df_nc = df_req[df_req['cumplimiento'].str.contains('No', case=False, na=False)]
-            for _, row in df_nc.iterrows():
-                proceso = row.get('proceso_auditado', '')
-                if proceso and str(proceso).strip():
-                    sac_combinations.add((req, proceso))
+            procesos_nc = df_nc['proceso_auditado'].nunique()
+            # Special case: if requisito appears in exactly 2 processes, count as 2
+            if procesos_nc == 2:
+                sac_count += 2
+            else:
+                sac_count += 1
         elif has_om_conforme:
             reqs_om.add(req)
         else:
@@ -417,7 +417,7 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
     return {
         'total': total_reqs,
         'conforme': len(reqs_conforme),
-        'sac': len(sac_combinations),
+        'sac': sac_count,
         'om': len(reqs_om),
         'pct_conforme': round(pct_conforme, 1)
     }
