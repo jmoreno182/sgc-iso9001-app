@@ -379,20 +379,37 @@ def compute_procesos_auditados(df: pd.DataFrame) -> dict:
 
 @st.cache_data
 def compute_requisitos_stats(df: pd.DataFrame) -> dict:
-    """Requisitos específicos sin repetir y sus clasificaciones."""
+    """Requisitos específicos sin repetir y sus clasificaciones.
+
+    SAC count logic:
+    - Cada SAC se genera por combinación única de (requisito_iso, requisito_interno_legal)
+    - Ejemplo: req 4.4 con mismo requisito_interno_legal = 1 SAC
+    - Ejemplo: req 7.5 con 3 requisito_interno_legal distintos = 3 SACs
+    """
     df_eval = df[df['tipo_hallazgo'].notna() & (df['tipo_hallazgo'] != '')]
     df_eval = df_eval[df_eval['requisito_especifico'].notna() & (df_eval['requisito_especifico'] != '')]
 
     # Total requisitos únicos
     total_reqs = df_eval['requisito_especifico'].nunique()
 
-    # Contar registros (hallazgos) por tipo
-    sac_count = len(df_eval[df_eval['cumplimiento'].str.contains('No', case=False, na=False)])
-    om_count = len(df_eval[df_eval['tipo_hallazgo'] == 'Oportunidad de mejora'])
+    # Normalizar columnas para búsqueda case-insensitive
+    df_eval = df_eval.copy()
+    df_eval['cumplimiento_norm'] = df_eval['cumplimiento'].astype(str).str.strip().str.lower()
+    df_eval['tipo_norm'] = df_eval['tipo_hallazgo'].astype(str).str.strip().str.lower()
+
+    # SAC: contar combinaciones únicas de (requisito_iso, requisito_interno_legal) donde hay No Conforme
+    df_nc = df_eval[df_eval['cumplimiento_norm'] == 'no conforme'].copy()
+    df_nc['req_interno_norm'] = df_nc['requisito_interno_legal'].astype(str).str.strip().str.lower()
+    # Contar combinaciones únicas: (requisito_iso, requisito_interno_legal)
+    sac_count = df_nc[['requisito_iso', 'req_interno_norm']].drop_duplicates().shape[0] if not df_nc.empty else 0
+
+    # OM: contar requisitos ÚNICOS donde tipo_hallazgo = "oportunidad de mejora"
+    df_om = df_eval[df_eval['tipo_norm'] == 'oportunidad de mejora']
+    om_count = df_om['requisito_especifico'].nunique() if not df_om.empty else 0
 
     # Requisitos Conforme = Total - Requisitos con No Conforme - Requisitos con OM
-    reqs_with_nc = df_eval[df_eval['cumplimiento'].str.contains('No', case=False, na=False)]['requisito_especifico'].nunique()
-    reqs_with_om = df_eval[df_eval['tipo_hallazgo'] == 'Oportunidad de mejora']['requisito_especifico'].nunique()
+    reqs_with_nc = df_eval[df_eval['cumplimiento_norm'] == 'no conforme']['requisito_especifico'].nunique()
+    reqs_with_om = df_eval[df_eval['tipo_norm'] == 'oportunidad de mejora']['requisito_especifico'].nunique()
     conforme_count = total_reqs - reqs_with_nc - reqs_with_om
     pct_conforme = (conforme_count / total_reqs * 100) if total_reqs > 0 else 0
 
