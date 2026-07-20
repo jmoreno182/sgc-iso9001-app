@@ -403,14 +403,19 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
     # Contar combinaciones únicas: (requisito_iso, requisito_interno_legal)
     sac_count = df_nc[['requisito_iso', 'req_interno_norm']].drop_duplicates().shape[0] if not df_nc.empty else 0
 
-    # OM: contar requisitos ÚNICOS donde tipo_hallazgo = "oportunidad de mejora"
+    # OM: contar solo OMs de requisitos 7.5 y 8.5.2
     df_om = df_eval[df_eval['tipo_norm'] == 'oportunidad de mejora']
-    om_count = df_om['requisito_especifico'].nunique() if not df_om.empty else 0
+    if not df_om.empty:
+        # Normalizar a string para comparación (7.5 puede ser float o string)
+        om_reqs_norm = df_om['requisito_especifico'].astype(str).isin(['7.5', '8.5.2'])
+        om_count = df_om[om_reqs_norm]['requisito_especifico'].nunique()
+    else:
+        om_count = 0
 
-    # Requisitos Conforme = Total - Requisitos con No Conforme - Requisitos con OM
+    # Requisitos Conforme = Total - Requisitos con No Conforme
+    # (Las OMs se cuentan aparte, no restan de conforme)
     reqs_with_nc = df_eval[df_eval['cumplimiento_norm'] == 'no conforme']['requisito_especifico'].nunique()
-    reqs_with_om = df_eval[df_eval['tipo_norm'] == 'oportunidad de mejora']['requisito_especifico'].nunique()
-    conforme_count = total_reqs - reqs_with_nc - reqs_with_om
+    conforme_count = total_reqs - reqs_with_nc
     pct_conforme = (conforme_count / total_reqs * 100) if total_reqs > 0 else 0
 
     return {
