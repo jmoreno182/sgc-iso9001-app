@@ -75,7 +75,7 @@ def apply_iso_theme(fig):
 # CONFIGURACION DE PAGINA Y SISTEMA VISUAL
 # ==========================================
 st.set_page_config(
-    page_title="Gestion SGC - Google Sheets Cloud",
+    page_title="Gestión SGC - Google Sheets Cloud",
     page_icon=None,
     layout="wide",
 )
