@@ -386,42 +386,20 @@ def compute_requisitos_stats(df: pd.DataFrame) -> dict:
     # Total requisitos únicos
     total_reqs = df_eval['requisito_especifico'].nunique()
 
-    # Requisitos Conforme (sin No Conforme ni OM específico)
-    reqs_conforme = set()
-    reqs_om = set()
-    reqs_sac_unique = set()
-    sac_count = 0
+    # Contar registros (hallazgos) por tipo
+    sac_count = len(df_eval[df_eval['cumplimiento'].str.contains('No', case=False, na=False)])
+    om_count = len(df_eval[df_eval['tipo_hallazgo'] == 'Oportunidad de mejora'])
 
-    for req in df_eval['requisito_especifico'].unique():
-        df_req = df_eval[df_eval['requisito_especifico'] == req]
-        has_no_conforme = (df_req['cumplimiento'].str.contains('No', case=False, na=False)).any()
-        has_om = (df_req['tipo_hallazgo'] == 'Oportunidad de mejora').any()
-        has_om_conforme = ((df_req['tipo_hallazgo'] == 'Oportunidad de mejora') &
-                           (df_req['cumplimiento'] == 'Conforme')).any()
-
-        if has_no_conforme:
-            reqs_sac_unique.add(req)
-            # Count SACs: 1 per requisito, but count as 2 if appears in exactly 2 processes
-            df_nc = df_req[df_req['cumplimiento'].str.contains('No', case=False, na=False)]
-            procesos_nc = df_nc['proceso_auditado'].nunique()
-            # Special case: if requisito appears in exactly 2 processes, count as 2
-            if procesos_nc == 2:
-                sac_count += 2
-            else:
-                sac_count += 1
-        elif has_om_conforme:
-            reqs_om.add(req)
-        else:
-            reqs_conforme.add(req)
-
-    # Conforme: mathematically consistent with SAC and OM counts
-    conforme_count = total_reqs - sac_count - len(reqs_om)
+    # Requisitos Conforme = Total - Requisitos con No Conforme - Requisitos con OM
+    reqs_with_nc = df_eval[df_eval['cumplimiento'].str.contains('No', case=False, na=False)]['requisito_especifico'].nunique()
+    reqs_with_om = df_eval[df_eval['tipo_hallazgo'] == 'Oportunidad de mejora']['requisito_especifico'].nunique()
+    conforme_count = total_reqs - reqs_with_nc - reqs_with_om
     pct_conforme = (conforme_count / total_reqs * 100) if total_reqs > 0 else 0
 
     return {
         'total': total_reqs,
         'conforme': conforme_count,
         'sac': sac_count,
-        'om': len(reqs_om),
+        'om': om_count,
         'pct_conforme': round(pct_conforme, 1)
     }

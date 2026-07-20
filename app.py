@@ -403,20 +403,23 @@ if opcion == "ANÁLISIS":
         # FILA 1: Conformidad Global (PRIMARY)
         st.markdown(f"<div class='metric-card primary'><h3>Conformidad Global</h3><h2>{global_conf['pct']}%</h2><p>{global_conf['conforme']} de {global_conf['total']} hallazgos evaluados</p></div>", unsafe_allow_html=True)
 
-        # FILA 2: Primeras 3 métricas
+        # FILA 2: Total de requisitos sin repetir
         row2_col1, row2_col2, row2_col3 = st.columns(3, gap="medium")
         with row2_col1:
             st.markdown(f"<div class='metric-card compact'><h3>Procesos Auditados</h3><h2>{procesos['auditados']}/{procesos['total']}</h2><p>{procesos['pct']}%</p></div>", unsafe_allow_html=True)
         with row2_col2:
-            st.markdown(f"<div class='metric-card compact'><h3>Requisitos Específicos</h3><h2>{requisitos['total']}</h2><p>sin repetir</p></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='metric-card compact'><h3>Total de requisitos</h3><h2>{requisitos['total']}</h2><p>sin repetir</p></div>", unsafe_allow_html=True)
         with row2_col3:
-            st.markdown(f"<div class='metric-card compact'><h3>Conforme (Requisitos)</h3><h2>{requisitos['conforme']}</h2><p>{requisitos['pct_conforme']}%</p></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='metric-card compact'><h3>Total requisitos conforme</h3><h2>{requisitos['conforme']}</h2><p>{requisitos['pct_conforme']}%</p></div>", unsafe_allow_html=True)
 
-        # FILA 3: OM y SAC (2 espacios)
-        row3_col1, row3_col2 = st.columns(2, gap="medium")
+        # FILA 3: No conforme, OM y SAC
+        row3_col1, row3_col2, row3_col3 = st.columns(3, gap="medium")
+        total_no_conforme = requisitos['total'] - requisitos['conforme']
         with row3_col1:
-            st.markdown(f"<div class='metric-card compact'><h3>Oportunidad de Mejora</h3><h2>{requisitos['om']}</h2><p>requisitos</p></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='metric-card compact'><h3>Total requisitos no conforme</h3><h2>{total_no_conforme}</h2><p>requisitos</p></div>", unsafe_allow_html=True)
         with row3_col2:
+            st.markdown(f"<div class='metric-card compact'><h3>Oportunidad de Mejora</h3><h2>{requisitos['om']}</h2><p>requisitos</p></div>", unsafe_allow_html=True)
+        with row3_col3:
             st.markdown(f"<div class='metric-card compact'><h3>SAC 2026</h3><h2>{requisitos['sac']}</h2><p>requisitos</p></div>", unsafe_allow_html=True)
 
         st.divider()
