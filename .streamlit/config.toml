@@ -4,3 +4,9 @@ backgroundColor = "#FAFAF8"
 secondaryBackgroundColor = "#F1F0EC"
 textColor = "#1C1E21"
 font = "sans serif"
+
+[client]
+showErrorDetails = true
+
+[cache]
+maxMessagesCacheMessageTTLSeconds = 0
